@@ -23,9 +23,9 @@
 ## 表设计
 
 - user：用户 (username, password, user_id)
-- userinfo：用户信息 (user_id, email, ...)
+- userinfo：用户信息 (user_id, email, phone, description)
 - item：物品 (item_id, item_name, item_info)
-- message：私信 (sender_id, recver_id, message)
+- message：私信 (sender_id, recver_id, content)
 - item_notice：捡到的人发布的认领公告 (notice_id, finder_id, item_id)
-- loser_apply：失主发起的认领申请 (loser_id, notice_id, ...)
-- notice_info：公告信息(notice_id, ...)
+- application：失主发起的认领申请 (applicant_id, notice_id, status)
+- notice_info：公告信息(notice_id, location, time)
