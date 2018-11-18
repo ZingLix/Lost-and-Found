@@ -23,5 +23,6 @@
 - userinfo：用户信息 (user_id, email, ...)
 - item：物品 (item_id, item_name, item_info)
 - message：私信 (sender_id, recver_id, message)
-- found_item：捡到的人发布的物品信息 (seq_id, finder_id, item_id)
-- loser_verify：失主信息验证 (loser_id, seq_id, ...)
+- item_notice：捡到的人发布的认领公告 (notice_id, finder_id, item_id)
+- loser_apply：失主发起的认领申请 (loser_id, notice_id, ...)
+- notice_info：公告信息(notice_id, ...)
