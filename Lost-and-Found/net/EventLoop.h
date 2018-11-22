@@ -15,8 +15,6 @@ public:
 	~EventLoop();
 
 	void loop();
-	void addChannel(Channel*);
-	void removeChannel();
 	static EventLoop* getCurrentThreadEventLoop();
 
 	void updateChannel(Channel* ch);
