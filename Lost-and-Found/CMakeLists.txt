@@ -1,0 +1,7 @@
+cmake_minimum_required(VERSION 2.8)
+project(Lost&Found)
+add_definitions(-std=c++14)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ../build/)
+file(GLOB src "*.cpp")
+add_executable(Lost&Found ${src})
+target_link_libraries(Lost&Found boost_system pthread mysqlcppconn)
