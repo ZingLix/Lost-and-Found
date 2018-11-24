@@ -4,7 +4,9 @@
 
 using namespace boost::asio;
 
-User::User(socket_ptr&& soc_ptr,Server* s):started(false),soc_(std::move(soc_ptr)),read_buffer_(1024),write_buffer_(1024),server_(s) {
+User::User(socket_ptr&& soc_ptr,Server* s)
+	:started(false),soc_(std::move(soc_ptr)),
+	read_buffer_(1024),write_buffer_(1024),server_(s) {
 
 }
 
@@ -34,8 +36,9 @@ void User::on_write(const boost::system::error_code& err, size_t bytes) {
 
 
 void User::do_read() {
-	(*soc_).async_read_some(buffer(read_buffer_), std::bind(&User::on_read, this, std::placeholders::_1, std::placeholders::_2));
-	//async_read(*soc_, buffer(read_buffer_), std::bind(&User::on_read, this, std::placeholders::_1, std::placeholders::_2));
+	using namespace std::placeholders;
+	(*soc_).async_read_some(buffer(read_buffer_), 
+		std::bind(&User::on_read, this, _1, _2));
 }
 
 void User::do_write(const std::string& str) {
@@ -43,8 +46,8 @@ void User::do_write(const std::string& str) {
 	using namespace std::placeholders;
 	
 	std::copy(str.begin(), str.end(), &*write_buffer_.begin());
-	(*soc_).async_write_some(buffer(write_buffer_, str.size()), std::bind(&User::on_write,this,_1,_2));
-	//(*soc_).async_write_some(buffer(write_buffer_, str.size()));
+	(*soc_).async_write_some(buffer(write_buffer_, str.size()), 
+		std::bind(&User::on_write,this,_1,_2));
 }
 
 User::~User() {
