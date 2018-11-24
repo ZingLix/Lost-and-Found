@@ -1,7 +1,10 @@
 #include <iostream>
-#include "net/EventLoop.h"
+#include "boost/asio.hpp"
+#include "Server.h"
 
-int main() {
-	EventLoop el;
-	return 0;
+
+int main(int argc, char* argv[]) {
+	Server s(9981);
+	s.start();
 }
+
