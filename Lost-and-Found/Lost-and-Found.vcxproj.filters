@@ -3,12 +3,17 @@
   <ItemGroup>
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Server.cpp" />
-    <ClCompile Include="LnF_Server.cpp" />
     <ClCompile Include="User.cpp" />
+    <ClCompile Include="DbConnector.cpp" />
+    <ClCompile Include="logging.cpp" />
+    <ClCompile Include="LogInfo.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Server.h" />
-    <ClInclude Include="LnF_Server.h" />
     <ClInclude Include="User.h" />
+    <ClInclude Include="msg.h" />
+    <ClInclude Include="DbConnector.h" />
+    <ClInclude Include="logging.h" />
+    <ClInclude Include="LogInfo.h" />
   </ItemGroup>
 </Project>

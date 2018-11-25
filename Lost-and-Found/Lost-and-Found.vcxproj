@@ -75,23 +75,28 @@
   <ImportGroup Label="PropertySheets" />
   <PropertyGroup Label="UserMacros" />
   <ItemGroup>
-    <ClCompile Include="LnF_Server.cpp" />
+    <ClCompile Include="DbConnector.cpp" />
+    <ClCompile Include="logging.cpp" />
+    <ClCompile Include="LogInfo.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Server.cpp" />
     <ClCompile Include="User.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="LnF_Server.h" />
+    <ClInclude Include="DbConnector.h" />
+    <ClInclude Include="logging.h" />
+    <ClInclude Include="LogInfo.h" />
+    <ClInclude Include="msg.h" />
     <ClInclude Include="Server.h" />
     <ClInclude Include="User.h" />
   </ItemGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
-      <Optimization>MaxSpeed</Optimization>
+      <Optimization>Disabled</Optimization>
       <CppLanguageStandard>c++14</CppLanguageStandard>
     </ClCompile>
     <Link>
-      <LibraryDependencies>boost_system;pthread;%(LibraryDependencies)</LibraryDependencies>
+      <LibraryDependencies>boost_system;pthread;mysqlcppconn;%(LibraryDependencies)</LibraryDependencies>
     </Link>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

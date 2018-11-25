@@ -3,6 +3,7 @@
 #include <memory>
 #include <vector>
 #include "Server.h"
+#include "msg.h"
 
 class User:public std::enable_shared_from_this<User>
 {
@@ -19,10 +20,20 @@ public:
 	void do_read();
 	void do_write(const std::string& str);
 
+	void msg_exec(json_message& message);
+
+	void user_register(json_message& message);
+	void user_login(json_message& message);
+	void login_success(std::uint64_t id);
+	void login_failure(const std::string& reason);
+
+	void err_exec(int code, const std::string& content);
+
 private:
 	bool started;
 	std::unique_ptr<boost::asio::ip::tcp::socket> soc_;
 	std::vector<char> read_buffer_;
 	std::vector<char> write_buffer_;
 	Server *server_;
+	std::uint64_t user_id_;
 };

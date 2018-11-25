@@ -14,7 +14,7 @@ public:
 
 	json_message(std::string str) :allocator(document.GetAllocator()) {
 		document.Parse(str.c_str());
-		if (document.HasParseError()) {
+		if (!document.IsObject()|| document.HasParseError()) {
 			throw std::invalid_argument("Parse Error");
 		}
 	}
@@ -36,11 +36,12 @@ public:
 
 	bool parse(std::string str);
 
-	int getInt(const char* key) {
+	int getInt(const char* key) const {
+		if (!document.HasMember(key)) throw std::invalid_argument("No such member.");
 		return document[key].GetInt();
 	}
 
-	std::string getString() {
+	std::string getString() const {
 		rapidjson::StringBuffer buffer;
 		buffer.Clear();
 		rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
@@ -48,11 +49,12 @@ public:
 		return buffer.GetString();
 	}
 
-	std::string getString(const char* key) {
+	std::string getString(const char* key) const {
+		if (!document.HasMember(key)) throw std::invalid_argument("No such member.");
 		return document[key].GetString();
 	}
 
-	rapidjson::MemoryPoolAllocator<>& getAllocator() {
+	rapidjson::MemoryPoolAllocator<>& getAllocator() const {
 		return allocator;
 	}
 

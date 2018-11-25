@@ -18,6 +18,7 @@ Server::Server(ip::tcp::endpoint ep)
 
 
 void Server::start() {
+	db_.connect("zinglix", "password");
 	updateAcceptor();
 	context_.run();
 }
