@@ -21,7 +21,13 @@ public:
 
 	std::pair<bool, std::string> registerNewUser(std::string username, std::string password);
 
-	void createUserTable() const;
+	void createTable_user() const;
+	void createTable_userinfo() const;
+	void createTable_item() const;
+	void createTable_message() const;
+	void createTable_item_notice() const;
+	void createTable_application() const;
+	void createTable_notice_info() const;
 
 	void initDb();
 
