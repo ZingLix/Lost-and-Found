@@ -15,6 +15,8 @@ public:
 	void start();
 	void stop();
 
+	socket_ptr& socket();
+
 	void on_write(const boost::system::error_code & err, size_t bytes);
 	void on_read(const boost::system::error_code & err, size_t bytes);
 	void do_read();

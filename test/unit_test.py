@@ -29,7 +29,7 @@ def test(send_msg,recv_message):
         print("ok!")
     else:
         print("error!")
-    print("======================================================")
+    print("  ")
 
 flag=False
 host = '118.25.27.241'

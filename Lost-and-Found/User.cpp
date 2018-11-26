@@ -1,7 +1,7 @@
 #include "User.h"
 #include "boost/asio.hpp"
-#include <iostream>
 #include "msg.h"
+#include "LogInfo.h"
 
 using namespace boost::asio;
 
@@ -20,9 +20,13 @@ void User::stop() {
 	if (started == true) {
 		started = false;
 		soc_->shutdown(socket_base::shutdown_both);
-		soc_->close();
+
 		server_->user_close(shared_from_this());
 	}
+}
+
+User::socket_ptr& User::socket() {
+	return soc_;
 }
 
 void User::on_read(const boost::system::error_code & err, size_t bytes) {
@@ -63,7 +67,8 @@ void User::do_write(const std::string& str) {
 
 User::~User() {
 	stop();
-	std::cout << "user destroyed" << std::endl;
+	soc_->close();
+	LOG_DEBUG <<user_id_<< " destroyed";
 }
 
 void User::msg_exec(json_message& msg) {

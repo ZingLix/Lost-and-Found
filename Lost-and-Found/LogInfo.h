@@ -41,7 +41,7 @@ constexpr const char * getfilename(const char * str) {
 
 
 #define LOG_TRACE LogInfo(Logger::TRACE,getfilename(__FILE__), __LINE__)
-#define LOG_TRACE LogInfo(Logger::TRACE,getfilename(__FILE__), __LINE__)
+#define LOG_DEBUG LogInfo(Logger::DEBUG,getfilename(__FILE__), __LINE__)
 #define LOG_INFO LogInfo(Logger::INFO,getfilename(__FILE__), __LINE__)
 #define LOG_WARN LogInfo(Logger::WARN,getfilename(__FILE__), __LINE__)
 #define LOG_ERROR LogInfo(Logger::ERROR,getfilename(__FILE__), __LINE__)
