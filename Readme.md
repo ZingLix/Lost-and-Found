@@ -22,7 +22,7 @@
 
 ## 表设计
 
-- user：用户
+### user：用户
 
 |字段名|描述|类型|说明|
 |:---:|:---:|:---:|:---:|
@@ -30,7 +30,7 @@
 |password|密码|varchar(64)||
 |user_id|用户id|bigint unsigned|primary key|
 
-- userinfo：用户信息 
+### userinfo：用户信息 
 
 |字段名|描述|类型|说明|
 |:---:|:---:|:---:|:---:|
@@ -39,7 +39,7 @@
 |phone|手机|char(11)||
 |description|用户描述|varchar(512)||
 
-- item：物品
+### item：物品
 
 |字段名|描述|类型|说明|
 |:---:|:---:|:---:|:---:|
@@ -48,7 +48,7 @@
 |item_info|物品信息|varchar(512)||
 |lost_location|丢失位置|varchar(128)||
 
-- message：私信 
+### message：私信 
 
 |字段名|描述|类型|说明|
 |:---:|:---:|:---:|:---:|
@@ -57,7 +57,7 @@
 |recver_id|接收者id|bigint unsigned||
 |content|消息内容|varchar(512)||
 
-- item_notice：捡到的人发布的认领公告 
+### item_notice：捡到的人发布的认领公告 
 
 |字段名|描述|类型|说明|
 |:---:|:---:|:---:|:---:|
@@ -65,7 +65,7 @@
 |finder_id|发布公告的用户id|bigint unsigned||
 |item_id|丢失物品的id|bigint unsigned||
 
-- application：失主发起的认领申请 
+### application：失主发起的认领申请 
 
 |字段名|描述|类型|说明|
 |:---:|:---:|:---:|:---:|
@@ -74,7 +74,7 @@
 |notice_id|公告id|bigint unsigned||
 |status|申请状态|smallint unsigned||
 
-- notice_info：公告信息
+### notice_info：公告信息
 
 |字段名|描述|类型|说明|
 |:---:|:---:|:---:|:---:|
