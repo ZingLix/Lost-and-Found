@@ -23,9 +23,13 @@ public:
 	void msg_exec(json_message& message);
 
 	void user_register(json_message& message);
+
 	void user_login(json_message& message);
 	void login_success(std::uint64_t id);
 	void login_failure(const std::string& reason);
+
+	void notice_exec(json_message& message);
+	void notice_post(json_message& message);
 
 	void err_exec(int code, const std::string& content);
 

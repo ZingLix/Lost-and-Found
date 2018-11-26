@@ -74,6 +74,9 @@ void User::msg_exec(json_message& msg) {
 	case 2:
 		user_register(msg);
 		break;
+	case 11:
+		notice_post(msg);
+		break;
 	default:
 		stop();
 	}
@@ -127,3 +130,24 @@ void User::user_register(json_message& message) {
 	stop();
 }
 
+void User::notice_exec(json_message& message) {
+	switch (message.getInt("code")) {
+	case 1:
+		notice_post(message);
+		break;
+	default:
+		break;
+	}
+}
+
+
+void User::notice_post(json_message& message) {
+	std::uint64_t finder_id = user_id_;
+	std::uint64_t item_id = server_->db().addItem(message.getString("item_name"), message.getString("item_info"), message.getString("lost_location"));
+	std::uint64_t notice_id = server_->db().addNotice(finder_id, item_id);
+	json_message msg;
+	msg.add("type", 11);
+	msg.add("code", 2);
+	msg.add("notice_id", notice_id);
+	do_write(msg.getString());
+}

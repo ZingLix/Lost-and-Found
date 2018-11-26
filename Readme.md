@@ -14,7 +14,7 @@
     - [ ] 回复认证
     - [ ] 撤销认领
 - 捡到的人：
-    - [ ] 发布公告
+    - [x] 发布公告
     - [ ] 修改物品信息
     - [ ] 撤销公告
     - [ ] 对发起的认领进行认证
@@ -64,6 +64,7 @@
 |notice_id|公告id|bigint unsigned|primary key, auto_increment|N
 |finder_id|发布公告的用户id|bigint unsigned||N
 |item_id|丢失物品的id|bigint unsigned||N
+|status|认领状态|smallint unsigned|default 0|N
 
 ### application：失主发起的认领申请 
 
@@ -80,4 +81,4 @@
 |:---:|:---:|:---:|:---:|:---|
 |notice_id|公告id|bigint unsigned|primary key|N
 |contact_id|联系人id|bigint unsigned||N
-|time|发布时间|timestamp||N
+|time|发布时间|timestamp|DEFAULT CURRENT_TIMESTAMP|N

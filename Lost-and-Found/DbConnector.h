@@ -21,6 +21,9 @@ public:
 
 	std::pair<bool, std::string> registerNewUser(std::string username, std::string password);
 
+	std::uint64_t addItem(const std::string& item_name, const std::string& item_info, const std::string & lost_location);
+	std::uint64_t addNotice(std::uint64_t finder_id, std::uint64_t item_id);
+
 	void createTable_user() const;
 	void createTable_userinfo() const;
 	void createTable_item() const;
@@ -28,6 +31,8 @@ public:
 	void createTable_item_notice() const;
 	void createTable_application() const;
 	void createTable_notice_info() const;
+
+
 
 	void initDb();
 

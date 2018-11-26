@@ -33,18 +33,17 @@ std::shared_ptr<sql::ResultSet> DbConnector::getUser(std::string username) const
 std::uint64_t DbConnector::checkPassword(std::string username, std::string password) const {
 	auto resultSet = getUser(username);
 	resultSet->next();
+
 	try {
 		if(resultSet->getString("password") == password) {
 			return resultSet->getUInt64("user_id");
-		}else {
-			return 0;
 		}
 	}catch ( sql::SQLException& e ) {
 		LOG_ERROR << "# ERR: SQLException in " << __FILE__ << "(" << __FUNCTION__ << ") on line " 
 			<< __LINE__ << "# ERR: " << e.what() << " (MySQL error code: " << e.getErrorCode() 
 			<< ", SQLState: " << e.getSQLState() << " )" ;
-		return 0;
 	}
+	return 0;
 }
 
 std::pair<bool,std::string> DbConnector::registerNewUser(std::string username, std::string password) {
@@ -122,7 +121,8 @@ void DbConnector::createTable_item_notice() const {
 		" ( \
 			notice_id bigint Unsigned auto_increment primary key, \
 			finder_id bigint Unsigned not null,\
-			item_id bigint Unsigned not null)"));
+			item_id bigint Unsigned not null,\
+			status smallint unsigned not null)"));
 	stmt->executeUpdate();
 }
 
@@ -134,7 +134,7 @@ void DbConnector::createTable_application() const {
 			application_seq bigint Unsigned auto_increment primary key, \
 			applicant_id bigint Unsigned not null,\
 			notice_id bigint Unsigned not null,\
-			status smallint unsigned not null)"));
+			status smallint unsigned not null default 0)"));
 	stmt->executeUpdate();
 }
 
@@ -145,8 +145,39 @@ void DbConnector::createTable_notice_info() const {
 		" ( \
 			notice_id bigint Unsigned primary key, \
 			contact_id bigint Unsigned not null,\
-			time timestamp not null)"));
+			time timestamp not null DEFAULT CURRENT_TIMESTAMP)"));
 	stmt->executeUpdate();
+}
+
+std::uint64_t DbConnector::addItem(const std::string& item_name, const std::string& item_info, const std::string& lost_location) {
+	std::unique_ptr<sql::PreparedStatement> stmt(con->prepareStatement(
+		"INSERT INTO item(item_name,item_info,lost_location) VALUES (?,?,?)"));
+	stmt->setString(1, item_name);
+	stmt->setString(2, item_info);
+	stmt->setString(3, lost_location);
+	stmt->executeUpdate();
+	stmt.reset(con->prepareStatement("SELECT * FROM item"));
+	std::shared_ptr<sql::ResultSet> result(stmt->executeQuery());
+	result->next();
+	return result->getUInt64("item_id");
+}
+
+std::uint64_t DbConnector::addNotice(std::uint64_t finder_id, std::uint64_t item_id) {
+	std::unique_ptr<sql::PreparedStatement> stmt(con->prepareStatement(
+		"INSERT INTO item_notice(finder_id,item_id) VALUES (?,?)"));
+	stmt->setUInt64(1, finder_id);
+	stmt->setUInt64(2, item_id);
+	stmt->executeUpdate();
+	stmt.reset(con->prepareStatement("SELECT LAST_INSERT_ID() id FROM item"));
+	std::shared_ptr<sql::ResultSet> result(stmt->executeQuery());
+	result->next();
+	std::uint64_t notice_id = result->getUInt64("id");
+	stmt.reset(con->prepareStatement(
+		"INSERT INTO notice_info(notice_id,contact_id) VALUES (?,?)"));
+	stmt->setUInt64(1, notice_id);
+	stmt->setUInt64(2, finder_id);
+	stmt->executeUpdate();
+	return notice_id;
 }
 
 

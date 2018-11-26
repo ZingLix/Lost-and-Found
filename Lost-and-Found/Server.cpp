@@ -1,6 +1,6 @@
 #include "Server.h"
 #include "User.h"
-#include <iostream>
+#include "LogInfo.h"
 
 using namespace boost::asio;
 
@@ -21,6 +21,7 @@ void Server::start() {
 	db_.connect("zinglix", "password");
 	updateAcceptor();
 	context_.run();
+	LOG_INFO << "Server running...";
 }
 
 void Server::updateAcceptor() {
@@ -32,10 +33,10 @@ void Server::handle_accept(const err_code& ec) {
 	waiting_soc_ = std::make_unique<ip::tcp::socket>(context_);
 	user_list_.back()->start();
 	updateAcceptor();
-	std::cout << "user login." << std::endl;
+	LOG_INFO << "user login." ;
 }
 
 void Server::user_close(const std::shared_ptr<User>& user_ptr) {
-	std::cout << "user logout." << std::endl;
+	LOG_INFO << "user logout." ;
 	user_list_.erase(std::find(user_list_.begin(),user_list_.end(),user_ptr));
 }

@@ -19,7 +19,13 @@ public:
 		}
 	}
 
-	void add(std::string key, int val) {
+	//void add(std::string key, int val) {
+	//	rapidjson::Value n(key.c_str(), allocator);
+	//	document.AddMember(n, val, allocator);
+	//}
+
+	template<class T>
+	void add(std::string key, T val) {
 		rapidjson::Value n(key.c_str(), allocator);
 		document.AddMember(n, val, allocator);
 	}
@@ -61,6 +67,10 @@ public:
 	void add(std::string key,rapidjson::Value&& val) {
 		rapidjson::Value k(key.c_str(), allocator);
 		document.AddMember(k, val, allocator);
+	}
+
+	bool hasMember(std::string key) {
+		return document.HasMember(key);
 	}
 
 private:
