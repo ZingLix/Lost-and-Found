@@ -80,7 +80,7 @@ void User::msg_exec(json_message& msg) {
 		user_register(msg);
 		break;
 	case 11:
-		notice_post(msg);
+		notice_exec(msg);
 		break;
 	default:
 		stop();
@@ -140,6 +140,9 @@ void User::notice_exec(json_message& message) {
 	case 1:
 		notice_post(message);
 		break;
+	case 2:
+		notice_pull(message);
+		break;
 	default:
 		break;
 	}
@@ -152,7 +155,24 @@ void User::notice_post(json_message& message) {
 	std::uint64_t notice_id = server_->db().addNotice(finder_id, item_id);
 	json_message msg;
 	msg.add("type", 11);
-	msg.add("code", 2);
+	msg.add("code", 11);
 	msg.add("notice_id", notice_id);
+	do_write(msg.getString());
+}
+
+void User::notice_pull(json_message& message) {
+	auto result = server_->db().queryNotice();
+	json_message msg;
+	msg.add("type", 11);
+	msg.add("code", 12);
+	rapidjson::Value arr(rapidjson::kArrayType);
+	for(auto & res:result) {
+		rapidjson::Value a(rapidjson::kArrayType);
+		a.PushBack(rapidjson::Value (std::get<0>(res)), msg.getAllocator());
+		a.PushBack(rapidjson::Value (std::get<1>(res).c_str(), msg.getAllocator()), msg.getAllocator());
+		a.PushBack(rapidjson::Value (std::get<2>(res)), msg.getAllocator());
+		arr.PushBack(a, msg.getAllocator());
+	}
+	msg.add("notice_info", arr);
 	do_write(msg.getString());
 }

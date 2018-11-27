@@ -1,31 +1,16 @@
 import socket
 import json,threading
-import time
+import re
 
-def soc_thread(soc,i):
-    while (flag==False):
-        time.sleep(0.1)
-    t1=time.time()
-    data = {
-        'recver_id':0,
-        'type' : 1,
-        'username' : str(i),
-        'password' : str(i)
-    }
-    soc.send(json.dumps(data).encode())
-    soc.recv(1024)
-    t2=time.time()
-    print((t2-t1).se)
-
-def test(send_msg,recv_message):
+def test(send_msg,expect_message):
     s=json.dumps(send_msg,separators=(',',':'))
-    r=json.dumps(recv_message,separators=(',',':'))
+    exp=json.dumps(expect_message,separators=(',',':'))
     soc.send(s.encode())
     recv = soc.recv(1024).decode()
     print("Send: " + s)
-    print("Expc: "+ r)
+    print("Expc: "+ exp)
     print("Recv: "+ str(recv) + " ......",end='' )
-    if(recv==r):
+    if(json.loads(recv)==json.loads(exp)):
         print("ok!")
     else:
         print("error!")
@@ -123,8 +108,25 @@ send={
 
 recv={
     'type':11,
-    'code':2,
+    'code':11,
     'notice_id':1
+}
+
+test(send,recv)
+
+# test 6
+
+send={
+    'type':11,
+    'code':2,
+}
+
+recv={
+    'type':11,
+    'code':12,
+    'notice_info':[
+        [1,"手机",0]
+    ]
 }
 
 test(send,recv)

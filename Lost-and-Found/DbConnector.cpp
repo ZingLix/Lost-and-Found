@@ -180,6 +180,17 @@ std::uint64_t DbConnector::addNotice(std::uint64_t finder_id, std::uint64_t item
 	return notice_id;
 }
 
+std::vector<std::tuple<std::uint64_t, std::string, std::uint16_t>> DbConnector::queryNotice() {
+	std::unique_ptr<sql::PreparedStatement> stmt(con->prepareStatement(
+		"select * from item, item_notice where item.item_id = item_notice.item_id"));
+	std::shared_ptr<sql::ResultSet> resultset(stmt->executeQuery());
+	std::vector<std::tuple<std::uint64_t, std::string, std::uint16_t>> result;
+	while(resultset->next()) {
+		result.push_back(std::make_tuple(resultset->getUInt64("notice_id"), resultset->getString("item_name"), resultset->getUInt("status")));
+	}
+	return result;
+}
+
 
 void DbConnector::initDb() {
 	std::string DatabaseName(DbName);

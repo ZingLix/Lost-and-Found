@@ -36,6 +36,11 @@ public:
 		document.AddMember(k, v, allocator);
 	}
 
+	void add(std::string key, rapidjson::Value& val) {
+		rapidjson::Value k(key.c_str(), allocator);
+		document.AddMember(k, val, allocator);
+	}
+
 	void clear() {
 		document.SetObject();
 	}
@@ -50,7 +55,7 @@ public:
 	std::string getString() const {
 		rapidjson::StringBuffer buffer;
 		buffer.Clear();
-		rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
+		rapidjson::Writer<rapidjson::StringBuffer, rapidjson::Document::EncodingType, rapidjson::ASCII<>> writer(buffer);
 		document.Accept(writer);
 		return buffer.GetString();
 	}

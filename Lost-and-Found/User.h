@@ -32,6 +32,7 @@ public:
 
 	void notice_exec(json_message& message);
 	void notice_post(json_message& message);
+	void notice_pull(json_message& message);
 
 	void err_exec(int code, const std::string& content);
 

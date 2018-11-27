@@ -15,14 +15,14 @@ public:
 
 	void connect(std::string username, std::string password);
 
-	std::shared_ptr<sql::ResultSet> getUser(std::string username) const;
-
 	std::uint64_t checkPassword(std::string username, std::string password) const;
 
 	std::pair<bool, std::string> registerNewUser(std::string username, std::string password);
 
 	std::uint64_t addItem(const std::string& item_name, const std::string& item_info, const std::string & lost_location);
 	std::uint64_t addNotice(std::uint64_t finder_id, std::uint64_t item_id);
+
+	std::vector<std::tuple<std::uint64_t, std::string, std::uint16_t>> queryNotice();
 
 	void createTable_user() const;
 	void createTable_userinfo() const;
@@ -32,8 +32,6 @@ public:
 	void createTable_application() const;
 	void createTable_notice_info() const;
 
-
-
 	void initDb();
 
 	~DbConnector();
@@ -41,6 +39,8 @@ public:
 	static const char * DbName;
 
 private:
+	std::shared_ptr<sql::ResultSet> getUser(std::string username) const;
+
     sql::Driver* driver_;
     sql::Connection* con;
 };
