@@ -25,3 +25,15 @@ struct userinfo
 	std::string phone;
 	std::string description;
 };
+
+struct message
+{
+	message(std::uint64_t id, std::uint64_t senderid, std::uint64_t recverid, std::string content_)
+		:msg_seq_id(id),sender_id(senderid),recver_id(recverid),content(content_)
+	{}
+
+	std::uint64_t msg_seq_id;
+	std::uint64_t sender_id;
+	std::uint64_t recver_id;
+	std::string content;
+};

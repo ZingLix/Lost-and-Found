@@ -398,3 +398,5 @@ recv={
 }
 
 test(send,recv,'搜索')
+soc.close()
+

@@ -30,13 +30,31 @@ void Server::updateAcceptor() {
 
 void Server::handle_accept(const err_code& ec) {
 	LOG_INFO << "New connect from " << waiting_soc_->remote_endpoint().address().to_string() << ":" << waiting_soc_->remote_endpoint().port();
-	user_list_.push_back( std::make_shared<User>(std::move(waiting_soc_),this));
+	vistor_list_.push_back( std::make_shared<User>(std::move(waiting_soc_),this));
 	waiting_soc_ = std::make_unique<ip::tcp::socket>(context_);
-	user_list_.back()->start();
+	vistor_list_.back()->start();
 	updateAcceptor();
+}
+
+void Server::visitor_close(const std::shared_ptr<User>& user) {
+	LOG_INFO << user->socket()->remote_endpoint().address().to_string() << ":" << user->socket()->remote_endpoint().port() << " disconnected.";
+	vistor_list_.erase(std::find(vistor_list_.begin(),vistor_list_.end(),user));
 }
 
 void Server::user_close(const std::shared_ptr<User>& user) {
 	LOG_INFO << user->socket()->remote_endpoint().address().to_string() << ":" << user->socket()->remote_endpoint().port() << " disconnected.";
-	user_list_.erase(std::find(user_list_.begin(),user_list_.end(),user));
+	user_list_.erase(user_list_.find(user->id()));
+}
+
+void Server::user_login(const std::shared_ptr<User>& user) {
+	vistor_list_.erase(std::find(vistor_list_.begin(), vistor_list_.end(), user));
+	user_list_.emplace(user->id(), user);
+}
+
+bool Server::isOnline(std::uint64_t id) {
+	return user_list_.find(id) != user_list_.end();
+}
+
+std::shared_ptr<User> Server::getUser(std::uint64_t id) {
+	return user_list_[id];
 }

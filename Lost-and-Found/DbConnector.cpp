@@ -5,6 +5,7 @@
 #include "User.h"
 
 const char * DbConnector::DbName = "Lost_and_Found";
+const int pullMsgCountLimit = 200;
 
 DbConnector::DbConnector() : con(nullptr) {
 	driver_ = get_driver_instance();
@@ -333,4 +334,46 @@ void DbConnector::modifyUser(userinfo i) {
 	stmt->setString(3, i.description);
 	stmt->setUInt64(4, i.user_id);
 	stmt->executeUpdate();
+}
+
+void DbConnector::addMessageRecord(std::uint64_t sender_id, std::uint64_t recver_id, std::string content) {
+	std::unique_ptr<sql::PreparedStatement> stmt(con->prepareStatement(
+		"insert into message(sender_id,recver_id,content) values(?,?,?)"));
+	stmt->setUInt64(1, sender_id);
+	stmt->setUInt64(2, recver_id);
+	stmt->setString(3, content);
+	stmt->executeUpdate();
+}
+
+std::vector<message> DbConnector::pullMessageRecord(std::uint64_t user_id) {
+	std::unique_ptr<sql::PreparedStatement> stmt(con->prepareStatement(
+		"select * from message where sender_id = ? or recver_id = ? order by msg_seq_id desc limit ?"));
+	stmt->setUInt64(1, user_id);
+	stmt->setUInt64(2, user_id);
+	stmt->setInt(3, pullMsgCountLimit);
+	std::unique_ptr<sql::ResultSet> result(stmt->executeQuery());
+	std::vector<message> messages;
+	while(result->next()) {
+		messages.emplace_back(result->getUInt64("msg_seq_id"), result->getUInt64("sender_id"),
+			result->getUInt64("recver_id"), result->getString("content"));
+	}
+	return messages;
+}
+
+std::vector<message> DbConnector::pullMessageRecord(std::uint64_t user_id1, std::uint64_t user_id2) {
+	std::unique_ptr<sql::PreparedStatement> stmt(con->prepareStatement(
+		"select * from message where (sender_id = ? and recver_id = ?) or (sender_id = ? and recver_id = ?)\
+		order by msg_seq_id desc limit ?"));
+	stmt->setUInt64(1, user_id1);
+	stmt->setUInt64(2, user_id2);
+	stmt->setUInt64(3, user_id2);
+	stmt->setUInt64(4, user_id1);
+	stmt->setInt(5, pullMsgCountLimit);
+	std::unique_ptr<sql::ResultSet> result(stmt->executeQuery());
+	std::vector<message> messages;
+	while (result->next()) {
+		messages.emplace_back(result->getUInt64("msg_seq_id"), result->getUInt64("sender_id"),
+			result->getUInt64("recver_id"), result->getString("content"));
+	}
+	return messages;
 }

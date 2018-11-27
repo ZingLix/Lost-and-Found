@@ -42,6 +42,10 @@ public:
 	userinfo queryUser(std::uint64_t user_id);
 	void modifyUser(userinfo i);
 
+	void addMessageRecord(std::uint64_t sender_id, std::uint64_t recver_id, std::string content);
+	std::vector<message> pullMessageRecord(std::uint64_t user_id);
+	std::vector<message> pullMessageRecord(std::uint64_t user_id1,std::uint64_t user_id2);
+
 	void createTable_user() const;
 	void createTable_userinfo() const;
 	void createTable_item() const;

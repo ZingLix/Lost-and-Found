@@ -16,6 +16,7 @@ public:
 	void stop();
 
 	socket_ptr& socket();
+	std::uint64_t id();
 
 	void on_write(const boost::system::error_code & err, size_t bytes);
 	void on_read(const boost::system::error_code & err, size_t bytes);
@@ -47,6 +48,13 @@ public:
 	void user_exec(json_message& message);
 	void user_pull(json_message& message);
 	void user_modify(json_message& message);
+
+	void message_send(std::uint64_t from_id,const std::string& content);
+
+	void message_exec(json_message& message);
+	void message_send(json_message& message);
+	void message_pull(json_message& message);
+	void message_pull_certain_user(json_message& message);
 
 	void err_exec(int code, const std::string& content);
 

@@ -21,13 +21,19 @@ void User::stop() {
 	if (started == true) {
 		started = false;
 		soc_->shutdown(socket_base::shutdown_both);
-
-		server_->user_close(shared_from_this());
+		if (user_id_ == 0)
+			server_->visitor_close(shared_from_this());
+		else
+			server_->user_close(shared_from_this());
 	}
 }
 
 User::socket_ptr& User::socket() {
 	return soc_;
+}
+
+std::uint64_t User::id() {
+	return user_id_;
 }
 
 void User::on_read(const boost::system::error_code & err, size_t bytes) {
@@ -40,6 +46,7 @@ void User::on_read(const boost::system::error_code & err, size_t bytes) {
 		json_message message(msg);
 		msg_exec(message);
 	}catch ( std::invalid_argument& e ) {
+		LOG_ERROR << user_id_ << ": " << e.what();
 		err_exec(1, e.what());
 		stop();
 	}
@@ -86,6 +93,9 @@ void User::msg_exec(json_message& msg) {
 	case 4:
 		user_exec(msg);
 		break;
+	case 5:
+		message_exec(msg);
+		break;
 	case 11:
 		notice_exec(msg);
 		break;
@@ -103,11 +113,12 @@ void User::user_login(json_message& message) {
 }
 
 void User::login_success(std::uint64_t id) {
+	user_id_ = id;
+	server_->user_login(shared_from_this());
 	json_message msg;
 	msg.add("type", 1);
 	msg.add("code", 1);
 	msg.add("user_id", id);
-	user_id_ = id;
 	do_write(msg.getString());
 }
 
@@ -339,5 +350,88 @@ void User::notice_search(json_message& message) {
 		arr.PushBack(a, msg.getAllocator());
 	}
 	msg.add("notice_info", arr);
+	do_write(msg.getString());
+}
+
+void User::message_send(std::uint64_t from_id, const std::string& content) {
+	json_message msg;
+	msg.add("type", 11);
+	msg.add("code", 0);
+	msg.add("sender_id", from_id);
+	msg.add("content", content);
+	do_write(msg.getString());
+}
+
+void User::message_exec(json_message& message) {
+	switch (message.getInt("code")) {
+	case 1:
+		message_send(message);
+		break;
+	case 2:
+		message_pull(message);
+		break;
+	case 3:
+		message_pull_certain_user(message);
+		break;
+	default:
+		break;
+	}
+}
+
+void User::message_send(json_message& message) {
+	std::uint64_t id = message.getUInt64("recver_id");
+	if(server_->isOnline(id)) {
+		server_->getUser(id)->message_send(user_id_,message.getString("content"));
+	}
+	server_->db().addMessageRecord(user_id_, id, message.getString("content"));
+	json_message msg;
+	msg.add("type", 5);
+	msg.add("code", 11);
+	do_write(msg.getString());
+}
+
+void User::message_pull(json_message& message) {
+	auto messages = server_->db().pullMessageRecord(user_id_);
+	json_message msg;
+	msg.add("type", 5);
+	msg.add("code", 12);
+	rapidjson::Value arr(rapidjson::kArrayType);
+	for(auto& m:messages) {
+		rapidjson::Value a(rapidjson::kArrayType);
+		a.PushBack(rapidjson::Value(m.msg_seq_id), msg.getAllocator());
+		if(m.sender_id==user_id_) {
+			a.PushBack(rapidjson::Value(0), msg.getAllocator());
+			a.PushBack(rapidjson::Value(m.recver_id), msg.getAllocator());
+		}else {
+			a.PushBack(rapidjson::Value(1), msg.getAllocator());
+			a.PushBack(rapidjson::Value(m.sender_id), msg.getAllocator());
+		}
+		a.PushBack(rapidjson::Value(m.content, msg.getAllocator()), msg.getAllocator());
+		arr.PushBack(a, msg.getAllocator());
+	}
+	msg.add("messages", arr);
+	do_write(msg.getString());
+}
+
+void User::message_pull_certain_user(json_message& message) {
+	auto messages = server_->db().pullMessageRecord(user_id_);
+	json_message msg;
+	msg.add("type", 5);
+	msg.add("code", 13);
+	msg.add("target_user", message.getUInt64("user_id"));
+	rapidjson::Value arr(rapidjson::kArrayType);
+	for (auto& m : messages) {
+		rapidjson::Value a(rapidjson::kArrayType);
+		a.PushBack(rapidjson::Value(m.msg_seq_id), msg.getAllocator());
+		if (m.sender_id == user_id_) {
+			a.PushBack(rapidjson::Value(0), msg.getAllocator());
+		}
+		else {
+			a.PushBack(rapidjson::Value(1), msg.getAllocator());
+		}
+		a.PushBack(rapidjson::Value(m.content, msg.getAllocator()), msg.getAllocator());
+		arr.PushBack(a, msg.getAllocator());
+	}
+	msg.add("messages", arr);
 	do_write(msg.getString());
 }
