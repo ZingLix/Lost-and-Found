@@ -45,11 +45,14 @@ public:
 		document.SetObject();
 	}
 
-	bool parse(std::string str);
-
 	int getInt(const char* key) const {
 		if (!document.HasMember(key)) throw std::invalid_argument("No such member.");
 		return document[key].GetInt();
+	}
+
+	std::uint64_t getUInt64(const char* key) const {
+		if (!document.HasMember(key)) throw std::invalid_argument("No such member.");
+		return document[key].GetUint64();
 	}
 
 	std::string getString() const {

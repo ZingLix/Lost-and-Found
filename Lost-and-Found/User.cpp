@@ -2,6 +2,7 @@
 #include "boost/asio.hpp"
 #include "msg.h"
 #include "LogInfo.h"
+#include "Component.h"
 
 using namespace boost::asio;
 
@@ -79,6 +80,12 @@ void User::msg_exec(json_message& msg) {
 	case 2:
 		user_register(msg);
 		break;
+	case 3:
+		item_exec(msg);
+		break;
+	case 4:
+		user_exec(msg);
+		break;
 	case 11:
 		notice_exec(msg);
 		break;
@@ -143,6 +150,24 @@ void User::notice_exec(json_message& message) {
 	case 2:
 		notice_pull(message);
 		break;
+	case 3:
+		notice_claim(message);
+		break;
+	case 4:
+		notice_apply_pull(message);
+		break;
+	case 5:
+		application_status_update(message);
+		break;
+	case 6:
+		notice_withdraw(message);
+		break;
+	case 7:
+		application_withdraw(message);
+		break;
+	case 8:
+		notice_search(message);
+		break;
 	default:
 		break;
 	}
@@ -171,6 +196,146 @@ void User::notice_pull(json_message& message) {
 		a.PushBack(rapidjson::Value (std::get<0>(res)), msg.getAllocator());
 		a.PushBack(rapidjson::Value (std::get<1>(res).c_str(), msg.getAllocator()), msg.getAllocator());
 		a.PushBack(rapidjson::Value (std::get<2>(res)), msg.getAllocator());
+		arr.PushBack(a, msg.getAllocator());
+	}
+	msg.add("notice_info", arr);
+	do_write(msg.getString());
+}
+
+void User::notice_claim(json_message& message) {
+	std::uint64_t app_seq = server_->db().addApplication(user_id_, message.getUInt64("notice_id"));
+	json_message msg;
+	msg.add("type", 11);
+	msg.add("code", 13);
+	msg.add("application_seq", app_seq);
+	do_write(msg.getString());
+}
+
+void User::notice_apply_pull(json_message& message) {
+	auto result = server_->db().queryApplication(user_id_);
+	json_message msg;
+	msg.add("type", 11);
+	msg.add("code", 14);
+	rapidjson::Value arr(rapidjson::kArrayType);
+	for (auto & res : result) {
+		rapidjson::Value a(rapidjson::kArrayType);
+		a.PushBack(rapidjson::Value(std::get<0>(res)), msg.getAllocator());//application_seq
+		a.PushBack(rapidjson::Value(std::get<1>(res)), msg.getAllocator());//applicant_id
+		a.PushBack(rapidjson::Value(std::get<2>(res)), msg.getAllocator());//notice_id
+		a.PushBack(rapidjson::Value(std::get<3>(res)), msg.getAllocator());//status
+		a.PushBack(rapidjson::Value(std::get<4>(res)), msg.getAllocator());//item_id
+		a.PushBack(rapidjson::Value(std::get<5>(res).c_str(),msg.getAllocator()), msg.getAllocator());//item_name
+		arr.PushBack(a, msg.getAllocator());
+	}
+	msg.add("application_info", arr);
+	do_write(msg.getString());
+}
+
+void User::application_status_update(json_message& message) {
+	server_->db().execApplication(message.getUInt64("application_seq"), message.getInt("status"));
+	json_message msg;
+	msg.add("type", 11);
+	msg.add("code", 15);
+	do_write(msg.getString());
+}
+
+void User::notice_withdraw(json_message& message) {
+	server_->db().withdrawNotice(message.getUInt64("notice_id"));
+	json_message msg;
+	msg.add("type", 11);
+	msg.add("code", 16);
+	do_write(msg.getString());
+}
+
+void User::application_withdraw(json_message& message) {
+	server_->db().withdrawApplication(message.getUInt64("application_seq"));
+	json_message msg;
+	msg.add("type", 11);
+	msg.add("code", 17);
+	do_write(msg.getString());
+}
+
+void User::item_exec(json_message& message) {
+	switch (message.getInt("code")) {
+	case 1:
+		item_pull(message);
+		break;
+	case 2:
+		item_modify(message);
+		break;
+	default:
+		break;
+	}
+}
+
+void User::item_pull(json_message& message) {
+	auto i = server_->db().queryItem(message.getUInt64("item_id"));
+	json_message msg;
+	msg.add("type", 3);
+	msg.add("code", 11);
+	msg.add("item_id", i.item_id);
+	msg.add("item_name", i.item_name);
+	msg.add("item_info", i.item_info);
+	msg.add("lost_location", i.lost_location);
+	do_write(msg.getString());
+}
+
+void User::item_modify(json_message& message) {
+	item i(message.getUInt64("item_id"), message.getString("item_name"),
+		message.getString("item_info"), message.getString("lost_location"));
+	server_->db().modifyItem(i);
+	json_message msg;
+	msg.add("type", 3);
+	msg.add("code", 12);
+	do_write(msg.getString());
+}
+
+void User::user_exec(json_message& message) {
+	switch (message.getInt("code")) {
+	case 1:
+		user_pull(message);
+		break;
+	case 2:
+		user_modify(message);
+		break;
+	default:
+		break;
+	}
+}
+
+void User::user_pull(json_message& message) {
+	auto i = server_->db().queryUser(message.getUInt64("user_id"));
+	json_message msg;
+	msg.add("type", 4);
+	msg.add("code", 11);
+	msg.add("user_id", i.user_id);
+	msg.add("email", i.email);
+	msg.add("phone", i.phone);
+	msg.add("description", i.description);
+	do_write(msg.getString());
+}
+
+void User::user_modify(json_message& message) {
+	userinfo i(message.getUInt64("user_id"), message.getString("email"),
+		message.getString("phone"), message.getString("description"));
+	server_->db().modifyUser(i);
+	json_message msg;
+	msg.add("type", 4);
+	msg.add("code", 12);
+	do_write(msg.getString());
+}
+
+void User::notice_search(json_message& message) {
+	auto result = server_->db().queryNotice(message.getString("keyword"));
+	json_message msg;
+	msg.add("type", 11);
+	msg.add("code", 18);
+	rapidjson::Value arr(rapidjson::kArrayType);
+	for (auto & res : result) {
+		rapidjson::Value a(rapidjson::kArrayType);
+		a.PushBack(rapidjson::Value(std::get<0>(res)), msg.getAllocator());
+		a.PushBack(rapidjson::Value(std::get<1>(res).c_str(), msg.getAllocator()), msg.getAllocator());
+		a.PushBack(rapidjson::Value(std::get<2>(res)), msg.getAllocator());
 		arr.PushBack(a, msg.getAllocator());
 	}
 	msg.add("notice_info", arr);

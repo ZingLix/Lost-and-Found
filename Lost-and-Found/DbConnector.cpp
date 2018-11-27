@@ -2,6 +2,7 @@
 #include "LogInfo.h"
 
 #include <memory>
+#include "User.h"
 
 const char * DbConnector::DbName = "Lost_and_Found";
 
@@ -62,6 +63,14 @@ std::pair<bool,std::string> DbConnector::registerNewUser(std::string username, s
 			<< __LINE__ << "# ERR: " << e.what() << " (MySQL error code: " << e.getErrorCode()
 			<< ", SQLState: " << e.getSQLState() << " )";
 	}
+	stmt.reset(con->prepareStatement(
+		"SELECT LAST_INSERT_ID() id FROM user"));
+	std::unique_ptr<sql::ResultSet> res(stmt->executeQuery());
+	res->next();
+	stmt.reset(con->prepareStatement(
+		"INSERT INTO userinfo(user_id) VALUES (?)"));
+	stmt->setUInt64(1, res->getUInt64("id"));
+	stmt->executeUpdate();
 	return std::make_pair(true, std::string());
 }
 
@@ -122,7 +131,7 @@ void DbConnector::createTable_item_notice() const {
 			notice_id bigint Unsigned auto_increment primary key, \
 			finder_id bigint Unsigned not null,\
 			item_id bigint Unsigned not null,\
-			status smallint unsigned not null)"));
+			status smallint unsigned not null default 0)"));
 	stmt->executeUpdate();
 }
 
@@ -191,6 +200,17 @@ std::vector<std::tuple<std::uint64_t, std::string, std::uint16_t>> DbConnector::
 	return result;
 }
 
+std::vector<std::tuple<std::uint64_t, std::string, std::uint16_t>> DbConnector::queryNotice(std::string keyword) {
+	std::unique_ptr<sql::PreparedStatement> stmt(con->prepareStatement(
+		"select * from item, item_notice where item.item_id = item_notice.item_id and item_name like '%"+keyword+"%'"));
+	std::shared_ptr<sql::ResultSet> resultset(stmt->executeQuery());
+	std::vector<std::tuple<std::uint64_t, std::string, std::uint16_t>> result;
+	while (resultset->next()) {
+		result.push_back(std::make_tuple(resultset->getUInt64("notice_id"), resultset->getString("item_name"), resultset->getUInt("status")));
+	}
+	return result;
+}
+
 
 void DbConnector::initDb() {
 	std::string DatabaseName(DbName);
@@ -211,3 +231,106 @@ DbConnector::~DbConnector() {
 		delete con;
 }
 
+std::uint64_t DbConnector::addApplication(std::uint64_t applicant_id, std::uint64_t notice_id) {
+	std::unique_ptr<sql::PreparedStatement> stmt(con->prepareStatement(
+		"INSERT INTO application(applicant_id,notice_id) VALUES (?,?)"));
+	stmt->setUInt64(1, applicant_id);
+	stmt->setUInt64(2, notice_id);
+	stmt->executeUpdate();
+	stmt.reset(con->prepareStatement("SELECT LAST_INSERT_ID() id FROM application"));
+	std::shared_ptr<sql::ResultSet> result(stmt->executeQuery());
+	result->next();
+	return result->getUInt64("id");
+}
+
+std::vector<std::tuple<uint64_t, uint64_t, uint64_t, uint16_t, uint64_t, std::string>> DbConnector::queryApplication(std::uint64_t user_id) {
+	std::vector<std::tuple<uint64_t, uint64_t, uint64_t, uint16_t, uint64_t, std::string>> res;
+	std::unique_ptr<sql::PreparedStatement> stmt(con->prepareStatement(
+		"select application_seq, applicant_id, application.notice_id, application.status, item.item_id, item_name \
+		from application,item_notice,item\
+		where application.notice_id = item_notice.notice_id\
+		and item_notice.item_id = item.item_id\
+		and finder_id = "+std::to_string(user_id)));
+	std::unique_ptr<sql::ResultSet> result(stmt->executeQuery());
+	while(result->next()) {
+		res.push_back(std::make_tuple(result->getUInt64("application_seq"), result->getUInt64("applicant_id"),
+			result->getUInt64("notice_id"), result->getUInt("status"), result->getUInt64("item_id"), result->getString("item_name")));
+	}
+	return res;
+}
+
+void DbConnector::execApplication(std::uint64_t application_id, int status) {
+	std::unique_ptr<sql::PreparedStatement> stmt(con->prepareStatement(
+		"update application set status = ? where application_seq = ?"));
+	stmt->setInt(1, status);
+	stmt->setUInt64(2, application_id);
+	stmt->executeUpdate();
+	if(status==1) {
+		stmt.reset(con->prepareStatement("select notice_id from application where application_seq = ?"));
+		stmt->setUInt64(1, application_id);
+		std::unique_ptr<sql::ResultSet> res(stmt->executeQuery());
+		res->next();
+		auto notice_id = res->getUInt64("notice_id");
+		stmt.reset(con->prepareStatement("update item_notice set status = 1 where notice_id = ?"));
+		stmt->setUInt64(1, notice_id);
+		stmt->executeUpdate();
+	}
+}
+
+void DbConnector::withdrawNotice(std::uint64_t notice_id) {
+	std::unique_ptr<sql::PreparedStatement> stmt(con->prepareStatement(
+		"update item_notice set status = 3 where notice_id = ?"));
+	stmt->setUInt64(1, notice_id);
+	stmt->executeUpdate();
+	stmt.reset(con->prepareStatement(
+		"update application set status = 4 where notice_id = ?"));
+	stmt->setUInt64(1, notice_id);
+	stmt->executeUpdate();
+}
+
+void DbConnector::withdrawApplication(std::uint64_t application_id) {
+	std::unique_ptr<sql::PreparedStatement> stmt(con->prepareStatement(
+		"update application set status = 3 where application_seq = ?"));
+	stmt->setUInt64(1, application_id);
+	stmt->executeUpdate();
+}
+
+item DbConnector::queryItem(std::uint64_t item_id) {
+	std::unique_ptr<sql::PreparedStatement> stmt(con->prepareStatement(
+		"select * from item where item_id = ?"));
+	stmt->setUInt64(1, item_id);
+	std::unique_ptr<sql::ResultSet> res(stmt->executeQuery());
+	res->next();
+	return item(item_id, res->getString("item_name"),
+		res->getString("item_info"), res->getString("lost_location"));
+}
+
+void DbConnector::modifyItem(item i) {
+	std::unique_ptr<sql::PreparedStatement> stmt(con->prepareStatement(
+		"update item set item_name = ?, item_info = ?, lost_location = ? where item_id = ?"));
+	stmt->setString(1, i.item_name);
+	stmt->setString(2, i.item_info);
+	stmt->setString(3, i.lost_location);
+	stmt->setUInt64(4, i.item_id);
+	stmt->executeUpdate();
+}
+
+userinfo DbConnector::queryUser(std::uint64_t user_id) {
+	std::unique_ptr<sql::PreparedStatement> stmt(con->prepareStatement(
+		"select * from userinfo where user_id = ?"));
+	stmt->setUInt64(1, user_id);
+	std::unique_ptr<sql::ResultSet> res(stmt->executeQuery());
+	res->next();
+	return userinfo(user_id, res->getString("email"),
+		res->getString("phone"), res->getString("description"));
+}
+
+void DbConnector::modifyUser(userinfo i) {
+	std::unique_ptr<sql::PreparedStatement> stmt(con->prepareStatement(
+		"update userinfo set email = ?, phone = ?, description = ? where user_id = ?"));
+	stmt->setString(1, i.email);
+	stmt->setString(2, i.phone);
+	stmt->setString(3, i.description);
+	stmt->setUInt64(4, i.user_id);
+	stmt->executeUpdate();
+}

@@ -5,20 +5,19 @@
 - 用户：
     - [x] 登陆、登出系统
     - [x] 注册
-    - [ ] 录入、修改用户信息
+    - [x] 录入、修改用户信息
     - [x] 浏览物品信息
-    - [ ] 搜索物品
+    - [x] 搜索物品
     - [ ] 私信联系
 - 丢失者：
-    - [ ] 发起认领
-    - [ ] 回复认证
-    - [ ] 撤销认领
+    - [x] 发起认领
+    - [x] 撤销认领
 - 捡到的人：
     - [x] 发布公告
-    - [ ] 修改物品信息
-    - [ ] 撤销公告
-    - [ ] 对发起的认领进行认证
-    - [ ] 接受、拒绝认领
+    - [x] 修改物品信息
+    - [x] 撤销公告
+    - [x] 查询发起的认领
+    - [x] 接受、拒绝认领
 
 ## 表设计
 
@@ -73,7 +72,7 @@
 |application_seq|申请流水号|bigint unsigned|primary key, auto_increment|N
 |applicant_id|申请者id|bigint unsigned||N
 |notice_id|公告id|bigint unsigned||N
-|status|申请状态|smallint unsigned||N
+|status|申请状态|smallint unsigned|default 0|N
 
 ### notice_info：公告信息
 

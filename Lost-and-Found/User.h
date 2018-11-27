@@ -33,6 +33,20 @@ public:
 	void notice_exec(json_message& message);
 	void notice_post(json_message& message);
 	void notice_pull(json_message& message);
+	void notice_claim(json_message& message);
+	void notice_apply_pull(json_message& message);
+	void application_status_update(json_message& message);
+	void notice_withdraw(json_message& message);
+	void application_withdraw(json_message& message);
+	void notice_search(json_message& message);
+
+	void item_exec(json_message& message);
+	void item_pull(json_message& message);
+	void item_modify(json_message& message);
+
+	void user_exec(json_message& message);
+	void user_pull(json_message& message);
+	void user_modify(json_message& message);
 
 	void err_exec(int code, const std::string& content);
 

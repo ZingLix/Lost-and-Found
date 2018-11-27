@@ -15,5 +15,6 @@
     <ClInclude Include="DbConnector.h" />
     <ClInclude Include="logging.h" />
     <ClInclude Include="LogInfo.h" />
+    <ClInclude Include="Component.h" />
   </ItemGroup>
 </Project>

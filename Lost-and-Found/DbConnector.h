@@ -8,6 +8,7 @@
 #include <cppconn/exception.h>
 #include <memory>
 #include <vector>
+#include "Component.h"
 
 class DbConnector {
 public:
@@ -23,6 +24,23 @@ public:
 	std::uint64_t addNotice(std::uint64_t finder_id, std::uint64_t item_id);
 
 	std::vector<std::tuple<std::uint64_t, std::string, std::uint16_t>> queryNotice();
+	std::vector<std::tuple<std::uint64_t, std::string, std::uint16_t>> queryNotice(std::string keyword);
+	std::uint64_t addApplication(std::uint64_t applicant_id, std::uint64_t notice_id);
+
+	std::vector<std::tuple<uint64_t, uint64_t, uint64_t, uint16_t, uint64_t, std::string>>
+		queryApplication(std::uint64_t user_id);
+
+	void execApplication(std::uint64_t application_id, int status);
+
+	void withdrawNotice(std::uint64_t notice_id);
+
+	void withdrawApplication(std::uint64_t application_id);
+
+	item queryItem(std::uint64_t item_id);
+	void modifyItem(item i);
+
+	userinfo queryUser(std::uint64_t user_id);
+	void modifyUser(userinfo i);
 
 	void createTable_user() const;
 	void createTable_userinfo() const;

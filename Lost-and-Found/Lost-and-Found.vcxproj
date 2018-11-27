@@ -83,6 +83,7 @@
     <ClCompile Include="User.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Component.h" />
     <ClInclude Include="DbConnector.h" />
     <ClInclude Include="logging.h" />
     <ClInclude Include="LogInfo.h" />
