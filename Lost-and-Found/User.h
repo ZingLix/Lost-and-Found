@@ -4,6 +4,7 @@
 #include <vector>
 #include "Server.h"
 #include "msg.h"
+#include <boost/beast.hpp>
 
 class User:public std::enable_shared_from_this<User>
 {
@@ -57,12 +58,17 @@ public:
 	void message_pull_certain_user(json_message& message);
 
 	void err_exec(int code, const std::string& content);
-
+	void ws_new(std::string);
+	void ws_read(std::string&);
+	std::string ws_write(const std::string&);
 private:
 	bool started;
+	bool is_ws_;
 	std::unique_ptr<boost::asio::ip::tcp::socket> soc_;
 	std::vector<char> read_buffer_;
 	std::vector<char> write_buffer_;
 	Server *server_;
 	std::uint64_t user_id_;
+	//std::unique_ptr<boost::beast::websocket::stream<boost::asio::ip::tcp::socket>> ws_;
+	//boost::beast::multi_buffer buffer_;
 };
