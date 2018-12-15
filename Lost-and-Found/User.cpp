@@ -308,6 +308,7 @@ void User::notice_pull(json_message& message) {
 		a.PushBack(rapidjson::Value (std::get<0>(res)), msg.getAllocator());
 		a.PushBack(rapidjson::Value (std::get<1>(res).c_str(), msg.getAllocator()), msg.getAllocator());
 		a.PushBack(rapidjson::Value (std::get<2>(res)), msg.getAllocator());
+		a.PushBack(rapidjson::Value(std::get<3>(res)), msg.getAllocator());
 		arr.PushBack(a, msg.getAllocator());
 	}
 	msg.add("notice_info", arr);
