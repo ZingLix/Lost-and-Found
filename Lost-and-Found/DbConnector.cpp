@@ -196,7 +196,7 @@ std::vector<std::tuple<std::uint64_t, std::string, std::uint16_t, std::uint64_t>
 	std::shared_ptr<sql::ResultSet> resultset(stmt->executeQuery());
 	std::vector<std::tuple<std::uint64_t, std::string, std::uint16_t, std::uint64_t>> result;
 	while(resultset->next()) {
-		result.push_back(std::make_tuple(resultset->getUInt64("notice_id"), resultset->getString("item_name"), resultset->getUInt("status"),resultset->getUInt64("item.item_id")));
+		result.push_back(std::make_tuple(resultset->getUInt64("notice_id"), resultset->getString("item_name"), resultset->getUInt("status"),resultset->getUInt64("item_id")));
 	}
 	return result;
 }
@@ -208,7 +208,7 @@ std::vector<std::tuple<std::uint64_t, std::string, std::uint16_t, std::uint64_t>
 	std::shared_ptr<sql::ResultSet> resultset(stmt->executeQuery());
 	std::vector<std::tuple<std::uint64_t, std::string, std::uint16_t, std::uint64_t>> result;
 	while (resultset->next()) {
-		result.push_back(std::make_tuple(resultset->getUInt64("notice_id"), resultset->getString("item_name"), resultset->getUInt("status"), resultset->getUInt64("item.item_id")));
+		result.push_back(std::make_tuple(resultset->getUInt64("notice_id"), resultset->getString("item_name"), resultset->getUInt("status"), resultset->getUInt64("item_id")));
 	}
 	return result;
 }
