@@ -23,8 +23,9 @@ public:
 	std::uint64_t addItem(const std::string& item_name, const std::string& item_info, const std::string & lost_location);
 	std::uint64_t addNotice(std::uint64_t finder_id, std::uint64_t item_id);
 
-	std::vector<std::tuple<std::uint64_t, std::string, std::uint16_t, std::uint64_t>> queryNotice();
-	std::vector<std::tuple<std::uint64_t, std::string, std::uint16_t, std::uint64_t>> queryNotice(std::string keyword);
+	std::vector<std::tuple<std::uint64_t, std::uint64_t, std::uint16_t, std::uint64_t, std::uint64_t, std::string>> queryNotice();
+	std::tuple<std::uint64_t, std::uint64_t, std::uint16_t, std::uint64_t, std::uint64_t, std::string> queryNotice(std::uint64_t notice_id);
+	std::vector<std::tuple<std::uint64_t, std::uint64_t, std::uint16_t, std::uint64_t, std::uint64_t, std::string>> queryNotice(std::string keyword);
 	std::uint64_t addApplication(std::uint64_t applicant_id, std::uint64_t notice_id);
 
 	std::vector<std::tuple<uint64_t, uint64_t, uint64_t, uint16_t, uint64_t, std::string>>

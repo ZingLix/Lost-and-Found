@@ -159,15 +159,24 @@ void User::do_write(const std::string& str) {
 std::string User::ws_write(const std::string& str) {
 	if (!is_ws_) return str;
 	std::string s;
-	char head[16];
 	s += 0x81;
 	if (str.length() <= 125) s += str.length();
 	else if (str.length() <= 65535) {
 		s += 126;
-		s += static_cast<std::uint16_t>(str.length());
+		std::uint16_t l = static_cast<std::uint16_t>(str.length());
+		for(int i=8;i>=0;i-=8) {
+			auto tmp = l >> i;
+			tmp &= 0x0ff;
+			s += tmp;
+		}
 	}else {
 		s += 127;
-		s += static_cast<std::uint64_t>(str.length());
+		std::uint16_t l = static_cast<std::uint16_t>(str.length());
+		for (int i = 64-8; i >= 0; i -= 8) {
+			auto tmp = l >> i;
+			tmp &= 0x0ff;
+			s += tmp;
+		}
 	}
 	s += str;
 	return s;
@@ -280,6 +289,9 @@ void User::notice_exec(json_message& message) {
 	case 8:
 		notice_search(message);
 		break;
+	case 0:
+		notice_query(message);
+		break;
 	default:
 		break;
 	}
@@ -306,9 +318,11 @@ void User::notice_pull(json_message& message) {
 	for(auto & res:result) {
 		rapidjson::Value a(rapidjson::kArrayType);
 		a.PushBack(rapidjson::Value (std::get<0>(res)), msg.getAllocator());
-		a.PushBack(rapidjson::Value (std::get<1>(res).c_str(), msg.getAllocator()), msg.getAllocator());
+		a.PushBack(rapidjson::Value (std::get<1>(res)), msg.getAllocator());
 		a.PushBack(rapidjson::Value (std::get<2>(res)), msg.getAllocator());
 		a.PushBack(rapidjson::Value(std::get<3>(res)), msg.getAllocator());
+		a.PushBack(rapidjson::Value(std::get<4>(res)), msg.getAllocator());
+		a.PushBack(rapidjson::Value(std::get<5>(res).c_str(), msg.getAllocator()), msg.getAllocator());
 		arr.PushBack(a, msg.getAllocator());
 	}
 	msg.add("notice_info", arr);
@@ -447,8 +461,11 @@ void User::notice_search(json_message& message) {
 	for (auto & res : result) {
 		rapidjson::Value a(rapidjson::kArrayType);
 		a.PushBack(rapidjson::Value(std::get<0>(res)), msg.getAllocator());
-		a.PushBack(rapidjson::Value(std::get<1>(res).c_str(), msg.getAllocator()), msg.getAllocator());
+		a.PushBack(rapidjson::Value(std::get<1>(res)), msg.getAllocator());
 		a.PushBack(rapidjson::Value(std::get<2>(res)), msg.getAllocator());
+		a.PushBack(rapidjson::Value(std::get<3>(res)), msg.getAllocator());
+		a.PushBack(rapidjson::Value(std::get<4>(res)), msg.getAllocator());
+		a.PushBack(rapidjson::Value(std::get<5>(res).c_str(), msg.getAllocator()), msg.getAllocator());
 		arr.PushBack(a, msg.getAllocator());
 	}
 	msg.add("notice_info", arr);
@@ -574,4 +591,21 @@ void User::ws_read(std::string& str) {
 		}
 	}
 	str = std::string(data.begin(), data.begin() + payload_length_);
+}
+
+void User::notice_query(json_message& message) {
+	auto res = server_->db().queryNotice(message.getUInt64("notice_id"));
+	json_message msg;
+	msg.add("type", 11);
+	msg.add("code", 19);
+	msg.add("notice_Id", message.getUInt64("notice_id"));
+	rapidjson::Value a(rapidjson::kArrayType);
+	a.PushBack(rapidjson::Value(std::get<0>(res)), msg.getAllocator());
+	a.PushBack(rapidjson::Value(std::get<1>(res)), msg.getAllocator());
+	a.PushBack(rapidjson::Value(std::get<2>(res)), msg.getAllocator());
+	a.PushBack(rapidjson::Value(std::get<3>(res)), msg.getAllocator());
+	a.PushBack(rapidjson::Value(std::get<4>(res)), msg.getAllocator());
+	a.PushBack(rapidjson::Value(std::get<5>(res).c_str(), msg.getAllocator()), msg.getAllocator());
+	msg.add("notice_info",a);
+	do_write(msg.getString());
 }

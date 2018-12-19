@@ -166,10 +166,10 @@ std::uint64_t DbConnector::addItem(const std::string& item_name, const std::stri
 	stmt->setString(2, item_info);
 	stmt->setString(3, lost_location);
 	stmt->executeUpdate();
-	stmt.reset(con->prepareStatement("SELECT * FROM item"));
+	stmt.reset(con->prepareStatement("SELECT LAST_INSERT_ID() id FROM item"));
 	std::shared_ptr<sql::ResultSet> result(stmt->executeQuery());
 	result->next();
-	return result->getUInt64("item_id");
+	return result->getUInt64("id");
 }
 
 std::uint64_t DbConnector::addNotice(std::uint64_t finder_id, std::uint64_t item_id) {
@@ -190,27 +190,42 @@ std::uint64_t DbConnector::addNotice(std::uint64_t finder_id, std::uint64_t item
 	return notice_id;
 }
 
-std::vector<std::tuple<std::uint64_t, std::string, std::uint16_t, std::uint64_t>> DbConnector::queryNotice() {
+std::vector<std::tuple<std::uint64_t, std::uint64_t, std::uint16_t, std::uint64_t, std::uint64_t, std::string>> DbConnector::queryNotice() {
 	std::unique_ptr<sql::PreparedStatement> stmt(con->prepareStatement(
-		"select * from item, item_notice where item.item_id = item_notice.item_id"));
+		"select * from item_notice,notice_info where notice_info.notice_id = item_notice.notice_id"));
 	std::shared_ptr<sql::ResultSet> resultset(stmt->executeQuery());
-	std::vector<std::tuple<std::uint64_t, std::string, std::uint16_t, std::uint64_t>> result;
+	std::vector<std::tuple<std::uint64_t,std::uint64_t, std::uint16_t, std::uint64_t,std::uint64_t,std::string>> result;
 	while(resultset->next()) {
-		result.push_back(std::make_tuple(resultset->getUInt64("notice_id"), resultset->getString("item_name"), resultset->getUInt("status"),resultset->getUInt64("item_id")));
+		result.push_back(std::make_tuple(resultset->getUInt64("notice_id"),resultset->getUInt64("finder_id"), resultset->getUInt("status"),
+			resultset->getUInt64("item_id"),resultset->getUInt64("contact_id"),resultset->getString("time")));
 	}
 	return result;
 }
 
-std::vector<std::tuple<std::uint64_t, std::string, std::uint16_t, std::uint64_t>> DbConnector::queryNotice(
+std::vector<std::tuple<std::uint64_t, std::uint64_t, std::uint16_t, std::uint64_t, std::uint64_t, std::string>> DbConnector::queryNotice(
 	std::string keyword) {
 	std::unique_ptr<sql::PreparedStatement> stmt(con->prepareStatement(
-		"select * from item, item_notice where item.item_id = item_notice.item_id and item_name like '%"+keyword+"%'"));
+		"select * from item_notice,notice_info,item where notice_info.notice_id = item_notice.notice_id\
+		 and item.item_id = item_notice.item_id and item_name like '%" + keyword + "%'"));
 	std::shared_ptr<sql::ResultSet> resultset(stmt->executeQuery());
-	std::vector<std::tuple<std::uint64_t, std::string, std::uint16_t, std::uint64_t>> result;
+	std::vector<std::tuple<std::uint64_t, std::uint64_t, std::uint16_t, std::uint64_t, std::uint64_t, std::string>> result;
 	while (resultset->next()) {
-		result.push_back(std::make_tuple(resultset->getUInt64("notice_id"), resultset->getString("item_name"), resultset->getUInt("status"), resultset->getUInt64("item_id")));
+		result.push_back(std::make_tuple(resultset->getUInt64("notice_id"), resultset->getUInt64("finder_id"), resultset->getUInt("status"),
+			resultset->getUInt64("item_id"), resultset->getUInt64("contact_id"), resultset->getString("time")));
 	}
 	return result;
+}
+
+std::tuple<std::uint64_t, std::uint64_t, std::uint16_t, std::uint64_t, std::uint64_t, std::string> DbConnector::queryNotice(std::uint64_t notice_id) {
+	std::unique_ptr<sql::PreparedStatement> stmt(con->prepareStatement(
+		"select * from item_notice,notice_info where notice_info.notice_id = item_notice.notice_id\
+		 and notice_info.notice_id = ?"));
+	stmt->setUInt64(1, notice_id);
+	std::shared_ptr<sql::ResultSet> resultset(stmt->executeQuery());
+	resultset->next(); 
+	return std::make_tuple(resultset->getUInt64("notice_id"), resultset->getUInt64("finder_id"), resultset->getUInt("status"),
+			resultset->getUInt64("item_id"), resultset->getUInt64("contact_id"), resultset->getString("time"));
+	
 }
 
 
