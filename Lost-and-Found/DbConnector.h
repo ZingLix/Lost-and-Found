@@ -26,6 +26,8 @@ public:
 	std::vector<std::tuple<std::uint64_t, std::uint64_t, std::uint16_t, std::uint64_t, std::uint64_t, std::string>> queryNotice();
 	std::tuple<std::uint64_t, std::uint64_t, std::uint16_t, std::uint64_t, std::uint64_t, std::string> queryNotice(std::uint64_t notice_id);
 	std::vector<std::tuple<std::uint64_t, std::uint64_t, std::uint16_t, std::uint64_t, std::uint64_t, std::string>> queryNotice(std::string keyword);
+	std::vector<std::uint64_t> queryNotice_one(std::uint64_t user_id);
+
 	std::uint64_t addApplication(std::uint64_t applicant_id, std::uint64_t notice_id);
 
 	std::vector<std::tuple<uint64_t, uint64_t, uint64_t, uint16_t, uint64_t, std::string>>

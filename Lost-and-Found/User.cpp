@@ -289,8 +289,11 @@ void User::notice_exec(json_message& message) {
 	case 8:
 		notice_search(message);
 		break;
-	case 0:
+	case 9:
 		notice_query(message);
+		break;
+	case 10:
+		notice_pull_one(message);
 		break;
 	default:
 		break;
@@ -607,5 +610,20 @@ void User::notice_query(json_message& message) {
 	a.PushBack(rapidjson::Value(std::get<4>(res)), msg.getAllocator());
 	a.PushBack(rapidjson::Value(std::get<5>(res).c_str(), msg.getAllocator()), msg.getAllocator());
 	msg.add("notice_info",a);
+	do_write(msg.getString());
+}
+
+void User::notice_pull_one(json_message& message)
+{
+	auto res = server_->db().queryNotice_one(user_id_);
+	json_message msg;
+	msg.add("type", 11);
+	msg.add("code", 20);
+	rapidjson::Value a(rapidjson::kArrayType);
+	for(auto n:res)
+	{
+		a.PushBack(rapidjson::Value(n), msg.getAllocator());
+	}
+	msg.add("notice_list", a);
 	do_write(msg.getString());
 }

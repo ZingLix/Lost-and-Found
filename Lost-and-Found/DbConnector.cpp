@@ -216,6 +216,19 @@ std::vector<std::tuple<std::uint64_t, std::uint64_t, std::uint16_t, std::uint64_
 	return result;
 }
 
+std::vector<std::uint64_t> DbConnector::queryNotice_one(
+	std::uint64_t user_id) {
+	std::unique_ptr<sql::PreparedStatement> stmt(con->prepareStatement(
+		"select * from item_notice where finder_id = ?"));
+	stmt->setUInt64(1, user_id);
+	std::shared_ptr<sql::ResultSet> resultset(stmt->executeQuery());
+	std::vector<std::uint64_t> result;
+	while (resultset->next()) {
+		result.push_back(resultset->getUInt64("notice_id"));
+	}
+	return result;
+}
+
 std::tuple<std::uint64_t, std::uint64_t, std::uint16_t, std::uint64_t, std::uint64_t, std::string> DbConnector::queryNotice(std::uint64_t notice_id) {
 	std::unique_ptr<sql::PreparedStatement> stmt(con->prepareStatement(
 		"select * from item_notice,notice_info where notice_info.notice_id = item_notice.notice_id\
