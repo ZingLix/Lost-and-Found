@@ -313,7 +313,7 @@ void DbConnector::withdrawNotice(std::uint64_t notice_id) {
 	stmt->setUInt64(1, notice_id);
 	stmt->executeUpdate();
 	stmt.reset(con->prepareStatement(
-		"update application set status = 4 where notice_id = ?"));
+		"update application set status = 5 where notice_id = ? and status =0"));
 	stmt->setUInt64(1, notice_id);
 	stmt->executeUpdate();
 }

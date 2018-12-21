@@ -374,6 +374,7 @@ void User::notice_withdraw(json_message& message) {
 	json_message msg;
 	msg.add("type", 11);
 	msg.add("code", 16);
+	msg.add("notice_id", message.getUInt64("notice_id"));
 	do_write(msg.getString());
 }
 
@@ -382,6 +383,7 @@ void User::application_withdraw(json_message& message) {
 	json_message msg;
 	msg.add("type", 11);
 	msg.add("code", 17);
+	msg.add("application_seq", message.getUInt64("application_seq"));
 	do_write(msg.getString());
 }
 
