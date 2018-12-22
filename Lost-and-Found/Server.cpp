@@ -42,12 +42,16 @@ void Server::visitor_close(const std::shared_ptr<User>& user) {
 }
 
 void Server::user_close(const std::shared_ptr<User>& user) {
-	LOG_INFO << user->socket()->remote_endpoint().address().to_string() << ":" << user->socket()->remote_endpoint().port() << " disconnected.";
 	user_list_.erase(user_list_.find(user->id()));
 }
 
 void Server::user_login(const std::shared_ptr<User>& user) {
 	vistor_list_.erase(std::find(vistor_list_.begin(), vistor_list_.end(), user));
+	auto tmp = user_list_.find(user->id());
+	if(tmp!=user_list_.end()) {
+		tmp->second->err_exec(2, "Another client go online.");
+		tmp->second->stop();
+	}
 	user_list_.emplace(user->id(), user);
 }
 
