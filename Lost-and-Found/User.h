@@ -42,6 +42,9 @@ public:
 	void application_withdraw(json_message& message);
 	void notice_search(json_message& message);
 	void notice_query(json_message& message);
+	void notice_pull_one(json_message& message);
+	void notice_pull_application(json_message& message);
+	void notice_apply_pull_one(json_message& message);
 
 	void item_exec(json_message& message);
 	void item_pull(json_message& message);

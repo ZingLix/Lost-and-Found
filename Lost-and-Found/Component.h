@@ -16,11 +16,12 @@ struct item
 
 struct userinfo
 {
-	userinfo(std::uint64_t id, std::string email_, std::string phone_, std::string description_)
-		:user_id(id), email(email_),phone(phone_),description(description_)
+	userinfo(std::uint64_t id,std::string username_, std::string email_, std::string phone_, std::string description_)
+		:user_id(id),username(username_), email(email_),phone(phone_),description(description_)
 	{}
 
 	std::uint64_t user_id;
+	std::string username;
 	std::string email;
 	std::string phone;
 	std::string description;

@@ -31,12 +31,12 @@ void User::start() {
 void User::stop() {
 	if (started == true) {
 		started = false;
-		//if(!is_ws_) {
-			soc_->shutdown(socket_base::shutdown_both);
-		//}else {
-		//	ws_->close(socket_base::shutdown_both);
-		//}
-		
+		LOG_INFO << socket()->remote_endpoint().address().to_string() << ":" << socket()->remote_endpoint().port() << " disconnected.";
+
+
+		soc_->shutdown(socket_base::shutdown_both);
+
+
 		if (user_id_ == 0)
 			server_->visitor_close(shared_from_this());
 		else
@@ -292,6 +292,15 @@ void User::notice_exec(json_message& message) {
 	case 9:
 		notice_query(message);
 		break;
+	case 10:
+		notice_pull_one(message);
+		break;
+	case 21:
+		notice_pull_application(message);
+		break;
+	case 22:
+		notice_apply_pull_one(message);
+		break;
 	default:
 		break;
 	}
@@ -350,8 +359,7 @@ void User::notice_apply_pull(json_message& message) {
 		a.PushBack(rapidjson::Value(std::get<1>(res)), msg.getAllocator());//applicant_id
 		a.PushBack(rapidjson::Value(std::get<2>(res)), msg.getAllocator());//notice_id
 		a.PushBack(rapidjson::Value(std::get<3>(res)), msg.getAllocator());//status
-		a.PushBack(rapidjson::Value(std::get<4>(res)), msg.getAllocator());//item_id
-		a.PushBack(rapidjson::Value(std::get<5>(res).c_str(),msg.getAllocator()), msg.getAllocator());//item_name
+		a.PushBack(rapidjson::Value(std::get<4>(res).c_str(),msg.getAllocator()), msg.getAllocator());//time
 		arr.PushBack(a, msg.getAllocator());
 	}
 	msg.add("application_info", arr);
@@ -371,6 +379,7 @@ void User::notice_withdraw(json_message& message) {
 	json_message msg;
 	msg.add("type", 11);
 	msg.add("code", 16);
+	msg.add("notice_id", message.getUInt64("notice_id"));
 	do_write(msg.getString());
 }
 
@@ -379,6 +388,7 @@ void User::application_withdraw(json_message& message) {
 	json_message msg;
 	msg.add("type", 11);
 	msg.add("code", 17);
+	msg.add("application_seq", message.getUInt64("application_seq"));
 	do_write(msg.getString());
 }
 
@@ -436,6 +446,7 @@ void User::user_pull(json_message& message) {
 	msg.add("type", 4);
 	msg.add("code", 11);
 	msg.add("user_id", i.user_id);
+	msg.add("username", i.username);
 	msg.add("email", i.email);
 	msg.add("phone", i.phone);
 	msg.add("description", i.description);
@@ -443,7 +454,7 @@ void User::user_pull(json_message& message) {
 }
 
 void User::user_modify(json_message& message) {
-	userinfo i(message.getUInt64("user_id"), message.getString("email"),
+	userinfo i(message.getUInt64("user_id"),message.getString("username"), message.getString("email"),
 		message.getString("phone"), message.getString("description"));
 	server_->db().modifyUser(i);
 	json_message msg;
@@ -608,5 +619,49 @@ void User::notice_query(json_message& message) {
 	a.PushBack(rapidjson::Value(std::get<4>(res)), msg.getAllocator());
 	a.PushBack(rapidjson::Value(std::get<5>(res).c_str(), msg.getAllocator()), msg.getAllocator());
 	msg.add("notice_info",a);
+	do_write(msg.getString());
+}
+
+void User::notice_pull_one(json_message& message)
+{
+	auto res = server_->db().queryNotice_one(user_id_);
+	json_message msg;
+	msg.add("type", 11);
+	msg.add("code", 20);
+	rapidjson::Value a(rapidjson::kArrayType);
+	for(auto n:res)
+	{
+		a.PushBack(rapidjson::Value(n), msg.getAllocator());
+	}
+	msg.add("notice_list", a);
+	do_write(msg.getString());
+}
+
+void User::notice_pull_application(json_message& message) {
+	auto res = server_->db().queryNotice_whoapply(message.getUInt64("notice_id"));
+	json_message msg;
+	msg.add("type", 11);
+	msg.add("code", 31);
+	msg.add("notice_id", message.getUInt64("notice_id"));
+	rapidjson::Value a(rapidjson::kArrayType);
+	for(auto n:res) {
+		a.PushBack(rapidjson::Value(n), msg.getAllocator());
+	}
+	msg.add("application_list", a);
+	do_write(msg.getString());
+}
+
+void User::notice_apply_pull_one(json_message& message) {
+	auto res = server_->db().queryApplication_one(message.getUInt64("application_seq"));
+	json_message msg;
+	msg.add("type", 11);
+	msg.add("code", 32);
+	rapidjson::Value a(rapidjson::kArrayType);
+	a.PushBack(rapidjson::Value(std::get<0>(res)), msg.getAllocator());
+	a.PushBack(rapidjson::Value(std::get<1>(res)), msg.getAllocator());
+	a.PushBack(rapidjson::Value(std::get<2>(res)), msg.getAllocator());
+	a.PushBack(rapidjson::Value(std::get<3>(res)), msg.getAllocator());
+	a.PushBack(rapidjson::Value(std::get<4>(res).c_str(), msg.getAllocator()), msg.getAllocator());
+	msg.add("application_info", a);
 	do_write(msg.getString());
 }

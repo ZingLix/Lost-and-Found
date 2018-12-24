@@ -144,7 +144,8 @@ void DbConnector::createTable_application() const {
 			application_seq bigint Unsigned auto_increment primary key, \
 			applicant_id bigint Unsigned not null,\
 			notice_id bigint Unsigned not null,\
-			status smallint unsigned not null default 0)"));
+			status smallint unsigned not null default 0,\
+			time timestamp not null default CURRENT_TIMESTAMP)"));
 	stmt->executeUpdate();
 }
 
@@ -216,6 +217,19 @@ std::vector<std::tuple<std::uint64_t, std::uint64_t, std::uint16_t, std::uint64_
 	return result;
 }
 
+std::vector<std::uint64_t> DbConnector::queryNotice_one(
+	std::uint64_t user_id) {
+	std::unique_ptr<sql::PreparedStatement> stmt(con->prepareStatement(
+		"select * from item_notice where finder_id = ?"));
+	stmt->setUInt64(1, user_id);
+	std::shared_ptr<sql::ResultSet> resultset(stmt->executeQuery());
+	std::vector<std::uint64_t> result;
+	while (resultset->next()) {
+		result.push_back(resultset->getUInt64("notice_id"));
+	}
+	return result;
+}
+
 std::tuple<std::uint64_t, std::uint64_t, std::uint16_t, std::uint64_t, std::uint64_t, std::string> DbConnector::queryNotice(std::uint64_t notice_id) {
 	std::unique_ptr<sql::PreparedStatement> stmt(con->prepareStatement(
 		"select * from item_notice,notice_info where notice_info.notice_id = item_notice.notice_id\
@@ -260,20 +274,30 @@ std::uint64_t DbConnector::addApplication(std::uint64_t applicant_id, std::uint6
 	return result->getUInt64("id");
 }
 
-std::vector<std::tuple<uint64_t, uint64_t, uint64_t, uint16_t, uint64_t, std::string>> DbConnector::queryApplication(std::uint64_t user_id) {
-	std::vector<std::tuple<uint64_t, uint64_t, uint64_t, uint16_t, uint64_t, std::string>> res;
+std::vector<std::tuple<uint64_t, uint64_t, uint64_t, uint16_t, std::string>> DbConnector::queryApplication(std::uint64_t user_id) {
+	std::vector<std::tuple<uint64_t, uint64_t, uint64_t, uint16_t, std::string>> res;
 	std::unique_ptr<sql::PreparedStatement> stmt(con->prepareStatement(
-		"select application_seq, applicant_id, application.notice_id, application.status, item.item_id, item_name \
-		from application,item_notice,item\
+		"select application_seq, applicant_id, application.notice_id, application.status, time \
+		from application,item_notice\
 		where application.notice_id = item_notice.notice_id\
-		and item_notice.item_id = item.item_id\
-		and finder_id = "+std::to_string(user_id)));
+		and applicant_id = "+std::to_string(user_id)));
 	std::unique_ptr<sql::ResultSet> result(stmt->executeQuery());
 	while(result->next()) {
 		res.push_back(std::make_tuple(result->getUInt64("application_seq"), result->getUInt64("applicant_id"),
-			result->getUInt64("notice_id"), result->getUInt("status"), result->getUInt64("item_id"), result->getString("item_name")));
+			result->getUInt64("notice_id"), result->getUInt("status"), result->getString("time")));
 	}
 	return res;
+}
+
+std::tuple<uint64_t, uint64_t, uint64_t, uint16_t, std::string> DbConnector::
+queryApplication_one(std::uint64_t app_seq) {
+	std::unique_ptr<sql::PreparedStatement> stmt(con->prepareStatement(
+		"select * from application where application_seq=?"));
+	stmt->setUInt64(1, app_seq);
+	std::unique_ptr<sql::ResultSet> result(stmt->executeQuery());
+	result->next();
+	return std::make_tuple(result->getUInt64("application_seq"), result->getUInt64("applicant_id"),
+		result->getUInt64("notice_id"), result->getUInt("status"), result->getString("time"));
 }
 
 void DbConnector::execApplication(std::uint64_t application_id, int status) {
@@ -300,7 +324,7 @@ void DbConnector::withdrawNotice(std::uint64_t notice_id) {
 	stmt->setUInt64(1, notice_id);
 	stmt->executeUpdate();
 	stmt.reset(con->prepareStatement(
-		"update application set status = 4 where notice_id = ?"));
+		"update application set status = 5 where notice_id = ? and status =0"));
 	stmt->setUInt64(1, notice_id);
 	stmt->executeUpdate();
 }
@@ -334,11 +358,11 @@ void DbConnector::modifyItem(item i) {
 
 userinfo DbConnector::queryUser(std::uint64_t user_id) {
 	std::unique_ptr<sql::PreparedStatement> stmt(con->prepareStatement(
-		"select * from userinfo where user_id = ?"));
+		"select * from userinfo,user where userinfo.user_id=user.user_id and userinfo.user_id = ?"));
 	stmt->setUInt64(1, user_id);
 	std::unique_ptr<sql::ResultSet> res(stmt->executeQuery());
 	res->next();
-	return userinfo(user_id, res->getString("email"),
+	return userinfo(user_id, res->getString("username"), res->getString("email"),
 		res->getString("phone"), res->getString("description"));
 }
 
@@ -397,4 +421,16 @@ std::vector<message> DbConnector::pullMessageRecord(std::uint64_t user_id1, std:
 			result->getUInt64("recver_id"), result->getString("content"));
 	}
 	return messages;
+}
+
+std::vector<std::uint64_t> DbConnector::queryNotice_whoapply(std::uint64_t notice_id) {
+	std::unique_ptr<sql::PreparedStatement> stmt(con->prepareStatement(
+		"select * from application where notice_id = ?"));
+	stmt->setUInt64(1, notice_id);
+	std::vector<std::uint64_t> app_seq_list;
+	std::unique_ptr<sql::ResultSet> result(stmt->executeQuery());
+	while(result->next()) {
+		app_seq_list.push_back(result->getUInt64("application_seq"));
+	}
+	return app_seq_list;
 }
