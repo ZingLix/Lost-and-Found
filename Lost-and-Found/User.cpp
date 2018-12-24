@@ -289,7 +289,7 @@ void User::notice_exec(json_message& message) {
 	case 8:
 		notice_search(message);
 		break;
-	case 0:
+	case 9:
 		notice_query(message);
 		break;
 	default:
@@ -472,10 +472,11 @@ void User::notice_search(json_message& message) {
 	do_write(msg.getString());
 }
 
-void User::message_send(std::uint64_t from_id, const std::string& content) {
+void User::message_send(std::uint64_t from_id, std::uint64_t msg_seq, const std::string& content) {
 	json_message msg;
-	msg.add("type", 11);
+	msg.add("type", 5);
 	msg.add("code", 0);
+	msg.add("msg_seq", msg_seq);
 	msg.add("sender_id", from_id);
 	msg.add("content", content);
 	do_write(msg.getString());
@@ -499,10 +500,10 @@ void User::message_exec(json_message& message) {
 
 void User::message_send(json_message& message) {
 	std::uint64_t id = message.getUInt64("recver_id");
+	auto seq= server_->db().addMessageRecord(user_id_, id, message.getString("content"));
 	if(server_->isOnline(id)) {
-		server_->getUser(id)->message_send(user_id_,message.getString("content"));
+		server_->getUser(id)->message_send(user_id_,seq,message.getString("content"));
 	}
-	server_->db().addMessageRecord(user_id_, id, message.getString("content"));
 	json_message msg;
 	msg.add("type", 5);
 	msg.add("code", 11);
@@ -598,7 +599,7 @@ void User::notice_query(json_message& message) {
 	json_message msg;
 	msg.add("type", 11);
 	msg.add("code", 19);
-	msg.add("notice_Id", message.getUInt64("notice_id"));
+	msg.add("notice_id", message.getUInt64("notice_id"));
 	rapidjson::Value a(rapidjson::kArrayType);
 	a.PushBack(rapidjson::Value(std::get<0>(res)), msg.getAllocator());
 	a.PushBack(rapidjson::Value(std::get<1>(res)), msg.getAllocator());

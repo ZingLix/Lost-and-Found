@@ -51,7 +51,7 @@ public:
 	void user_pull(json_message& message);
 	void user_modify(json_message& message);
 
-	void message_send(std::uint64_t from_id,const std::string& content);
+	void message_send(std::uint64_t from_id, std::uint64_t app_seq, const std::string& content);
 
 	void message_exec(json_message& message);
 	void message_send(json_message& message);
@@ -70,6 +70,4 @@ private:
 	std::vector<char> write_buffer_;
 	Server *server_;
 	std::uint64_t user_id_;
-	//std::unique_ptr<boost::beast::websocket::stream<boost::asio::ip::tcp::socket>> ws_;
-	//boost::beast::multi_buffer buffer_;
 };

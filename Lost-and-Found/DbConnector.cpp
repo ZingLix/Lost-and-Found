@@ -352,13 +352,18 @@ void DbConnector::modifyUser(userinfo i) {
 	stmt->executeUpdate();
 }
 
-void DbConnector::addMessageRecord(std::uint64_t sender_id, std::uint64_t recver_id, std::string content) {
+std::uint64_t DbConnector::addMessageRecord(std::uint64_t sender_id, std::uint64_t recver_id, std::string content) {
 	std::unique_ptr<sql::PreparedStatement> stmt(con->prepareStatement(
 		"insert into message(sender_id,recver_id,content) values(?,?,?)"));
 	stmt->setUInt64(1, sender_id);
 	stmt->setUInt64(2, recver_id);
 	stmt->setString(3, content);
 	stmt->executeUpdate();
+	stmt.reset(con->prepareStatement(
+		"select LAST_INSERT_ID() app_seq from message"));
+	std::shared_ptr<sql::ResultSet> resultset(stmt->executeQuery());
+	resultset->next();
+	return resultset->getUInt64("app_seq");
 }
 
 std::vector<message> DbConnector::pullMessageRecord(std::uint64_t user_id) {
