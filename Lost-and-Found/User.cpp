@@ -32,7 +32,7 @@ void User::stop() {
 	if (started == true) {
 		started = false;
 		LOG_INFO << socket()->remote_endpoint().address().to_string() << ":" << socket()->remote_endpoint().port() << " disconnected.";
-
+		//LOG_INFO << user_id_ << " disconnected.";
 
 		soc_->shutdown(socket_base::shutdown_both);
 
@@ -54,6 +54,9 @@ std::uint64_t User::id() {
 
 void User::on_read(const boost::system::error_code & err, size_t bytes) {
 	if (err) {
+		if(err==boost::asio::error::eof) {
+			LOG_INFO <<user_id_<< " end of file";
+		}
 		stop();
 		return;
 	}
