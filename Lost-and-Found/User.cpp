@@ -17,9 +17,9 @@
 #include  <cstdint> 
 using namespace boost::asio;
 using namespace boost::beast;
-User::User(socket_ptr&& soc_ptr,Server* s)
-	:started(false),is_ws_(false),soc_(std::move(soc_ptr)),
-	read_buffer_(1024),write_buffer_(1024),server_(s),
+User::User(socket_ptr&& soc_ptr, Server* s)
+	:started(false), is_ws_(false), soc_(std::move(soc_ptr)),
+	read_buffer_(1024), write_buffer_(1024), server_(s),
 	user_id_(0)
 {}
 
@@ -54,31 +54,39 @@ std::uint64_t User::id() {
 
 void User::on_read(const boost::system::error_code & err, size_t bytes) {
 	if (err) {
-		if(err==boost::asio::error::eof) {
-			LOG_INFO <<user_id_<< " end of file";
+		if (err == boost::asio::error::eof) {
+			LOG_INFO << user_id_ << " end of file";
 		}
 		stop();
 		return;
 	}
 	std::string msg(&*read_buffer_.begin(), bytes);
 	if (msg.find("GET") != std::string::npos && is_ws_ == false) {
-	//	using namespace std::placeholders;
+		//	using namespace std::placeholders;
 		ws_new(msg);
-	//	ws_ = std::make_unique<websocket::stream<ip::tcp::socket>>(std::move(*soc_));
-	//	soc_.reset();
+		//	ws_ = std::make_unique<websocket::stream<ip::tcp::socket>>(std::move(*soc_));
+		//	soc_.reset();
 		return;
 	}
-	if(is_ws_) {
-		ws_read(msg);
+	std::vector<std::string> msg_set;
+	if (is_ws_) {
+		msg_set = ws_read(msg);
 	}
-	try {
-		json_message message(msg);
-		msg_exec(message);
-	}catch ( std::invalid_argument& e ) {
-		LOG_ERROR << user_id_ << ": " << e.what();
-		err_exec(1, e.what());
-		stop();
+	else {
+		msg_set.push_back(msg);
 	}
+	for (auto&messages : msg_set) {
+		try {
+			json_message message(messages);
+			msg_exec(message);
+		}
+		catch (std::invalid_argument& e) {
+			LOG_ERROR << user_id_ << ": " << e.what();
+			err_exec(1, e.what());
+			stop();
+		}
+	}
+
 }
 
 const std::string base64_padding[] = { "", "==","=" };
@@ -102,7 +110,7 @@ std::string Base64Encode(const std::string& s)
 
 void User::ws_new(std::string msg) {
 	auto it = msg.find("Sec-WebSocket-Key: ");
-	std::string key(msg.substr(it+19,43-19));
+	std::string key(msg.substr(it + 19, 43 - 19));
 	key += "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
 
 	unsigned char hash[20];
@@ -118,7 +126,7 @@ void User::ws_new(std::string msg) {
 	response += "HTTP/1.1 101 Switching Protocols\r\n";
 	response += "Connection: upgrade\r\n";
 	response += "Sec-WebSocket-Accept: ";
-	response += key +"\r\n";
+	response += key + "\r\n";
 	response += "Upgrade: websocket\r\n\r\n";
 	do_write(response);
 	is_ws_ = true;
@@ -138,8 +146,8 @@ void User::do_read() {
 	//		std::bind(&User::on_read, this, _1, _2));
 	//}
 	//else {
-		soc_->async_read_some(buffer(read_buffer_),
-			std::bind(&User::on_read, this, _1, _2));
+	soc_->async_read_some(buffer(read_buffer_),
+		std::bind(&User::on_read, this, _1, _2));
 	//}
 }
 
@@ -148,15 +156,15 @@ void User::do_write(const std::string& str) {
 	std::string s(ws_write(str));
 	using namespace std::placeholders;
 	std::copy(s.begin(), s.end(), &*write_buffer_.begin());
-//	if(is_ws_) {
-	//	ws_->async_write(buffer_.data(), std::bind(&User::on_write, this, _1, _2));
-	//	ws_->async_write_some(buffer(write_buffer_, str.size()),
-	//		std::bind(&User::on_write, this, _1, _2));
-//	}
-//	else {
-		soc_->async_write_some(buffer(write_buffer_, s.size()),
-			std::bind(&User::on_write, this, _1, _2));
-//	}
+	//	if(is_ws_) {
+		//	ws_->async_write(buffer_.data(), std::bind(&User::on_write, this, _1, _2));
+		//	ws_->async_write_some(buffer(write_buffer_, str.size()),
+		//		std::bind(&User::on_write, this, _1, _2));
+	//	}
+	//	else {
+	soc_->async_write_some(buffer(write_buffer_, s.size()),
+		std::bind(&User::on_write, this, _1, _2));
+	//	}
 }
 
 std::string User::ws_write(const std::string& str) {
@@ -167,15 +175,16 @@ std::string User::ws_write(const std::string& str) {
 	else if (str.length() <= 65535) {
 		s += 126;
 		std::uint16_t l = static_cast<std::uint16_t>(str.length());
-		for(int i=8;i>=0;i-=8) {
+		for (int i = 8; i >= 0; i -= 8) {
 			auto tmp = l >> i;
 			tmp &= 0x0ff;
 			s += tmp;
 		}
-	}else {
+	}
+	else {
 		s += 127;
 		std::uint16_t l = static_cast<std::uint16_t>(str.length());
-		for (int i = 64-8; i >= 0; i -= 8) {
+		for (int i = 64 - 8; i >= 0; i -= 8) {
 			auto tmp = l >> i;
 			tmp &= 0x0ff;
 			s += tmp;
@@ -189,11 +198,11 @@ std::string User::ws_write(const std::string& str) {
 User::~User() {
 	stop();
 	soc_->close();
-	LOG_DEBUG <<user_id_<< " destroyed";
+	LOG_DEBUG << user_id_ << " destroyed";
 }
 
 void User::msg_exec(json_message& msg) {
-	switch ( msg.getInt("type") ) {
+	switch (msg.getInt("type")) {
 	case 1:
 		user_login(msg);
 		break;
@@ -256,9 +265,10 @@ void User::user_register(json_message& message) {
 	auto result = server_->db().registerNewUser(message.getString("username"), message.getString("password"));
 	json_message msg;
 	msg.add("type", 2);
-	if(result.first==true) {
+	if (result.first == true) {
 		msg.add("code", 1);
-	}else {
+	}
+	else {
 		msg.add("code", 2);
 		msg.add("content", result.second);
 	}
@@ -327,11 +337,11 @@ void User::notice_pull(json_message& message) {
 	msg.add("type", 11);
 	msg.add("code", 12);
 	rapidjson::Value arr(rapidjson::kArrayType);
-	for(auto & res:result) {
+	for (auto & res : result) {
 		rapidjson::Value a(rapidjson::kArrayType);
-		a.PushBack(rapidjson::Value (std::get<0>(res)), msg.getAllocator());
-		a.PushBack(rapidjson::Value (std::get<1>(res)), msg.getAllocator());
-		a.PushBack(rapidjson::Value (std::get<2>(res)), msg.getAllocator());
+		a.PushBack(rapidjson::Value(std::get<0>(res)), msg.getAllocator());
+		a.PushBack(rapidjson::Value(std::get<1>(res)), msg.getAllocator());
+		a.PushBack(rapidjson::Value(std::get<2>(res)), msg.getAllocator());
 		a.PushBack(rapidjson::Value(std::get<3>(res)), msg.getAllocator());
 		a.PushBack(rapidjson::Value(std::get<4>(res)), msg.getAllocator());
 		a.PushBack(rapidjson::Value(std::get<5>(res).c_str(), msg.getAllocator()), msg.getAllocator());
@@ -362,7 +372,7 @@ void User::notice_apply_pull(json_message& message) {
 		a.PushBack(rapidjson::Value(std::get<1>(res)), msg.getAllocator());//applicant_id
 		a.PushBack(rapidjson::Value(std::get<2>(res)), msg.getAllocator());//notice_id
 		a.PushBack(rapidjson::Value(std::get<3>(res)), msg.getAllocator());//status
-		a.PushBack(rapidjson::Value(std::get<4>(res).c_str(),msg.getAllocator()), msg.getAllocator());//time
+		a.PushBack(rapidjson::Value(std::get<4>(res).c_str(), msg.getAllocator()), msg.getAllocator());//time
 		arr.PushBack(a, msg.getAllocator());
 	}
 	msg.add("application_info", arr);
@@ -457,7 +467,7 @@ void User::user_pull(json_message& message) {
 }
 
 void User::user_modify(json_message& message) {
-	userinfo i(message.getUInt64("user_id"),message.getString("username"), message.getString("email"),
+	userinfo i(message.getUInt64("user_id"), message.getString("username"), message.getString("email"),
 		message.getString("phone"), message.getString("description"));
 	server_->db().modifyUser(i);
 	json_message msg;
@@ -514,13 +524,16 @@ void User::message_exec(json_message& message) {
 
 void User::message_send(json_message& message) {
 	std::uint64_t id = message.getUInt64("recver_id");
-	auto seq= server_->db().addMessageRecord(user_id_, id, message.getString("content"));
-	if(server_->isOnline(id)) {
-		server_->getUser(id)->message_send(user_id_,seq,message.getString("content"));
+	auto seq = server_->db().addMessageRecord(user_id_, id, message.getString("content"));
+	if (server_->isOnline(id)) {
+		server_->getUser(id)->message_send(user_id_, seq, message.getString("content"));
 	}
 	json_message msg;
 	msg.add("type", 5);
 	msg.add("code", 11);
+	msg.add("recver_id", message.getUInt64("recver_id"));
+	msg.add("msg_seq", seq);
+	msg.add("content", message.getString("content"));
 	do_write(msg.getString());
 }
 
@@ -530,13 +543,14 @@ void User::message_pull(json_message& message) {
 	msg.add("type", 5);
 	msg.add("code", 12);
 	rapidjson::Value arr(rapidjson::kArrayType);
-	for(auto& m:messages) {
+	for (auto& m : messages) {
 		rapidjson::Value a(rapidjson::kArrayType);
 		a.PushBack(rapidjson::Value(m.msg_seq_id), msg.getAllocator());
-		if(m.sender_id==user_id_) {
+		if (m.sender_id == user_id_) {
 			a.PushBack(rapidjson::Value(0), msg.getAllocator());
 			a.PushBack(rapidjson::Value(m.recver_id), msg.getAllocator());
-		}else {
+		}
+		else {
 			a.PushBack(rapidjson::Value(1), msg.getAllocator());
 			a.PushBack(rapidjson::Value(m.sender_id), msg.getAllocator());
 		}
@@ -570,42 +584,48 @@ void User::message_pull_certain_user(json_message& message) {
 	do_write(msg.getString());
 }
 
-void User::ws_read(std::string& str) {
+std::vector<std::string> User::ws_read(std::string& str) {
+	std::vector<std::string> msg_set;
 	int pos = 0;
-	uint fin = (unsigned char)str[pos] >> 7;
-	uint opcode_ = str[pos++] & 0x0f;
-	uint mask = (unsigned char)str[pos] >> 7;
+	while (pos != str.length()) {
+		uint fin = (unsigned char)str[pos] >> 7;
+		uint opcode_ = str[pos++] & 0x0f;
+		uint mask = (unsigned char)str[pos] >> 7;
 
-	uint payload_length_ = str[pos] & 0x7f;
-	pos++;
-	if (payload_length_ == 126) {
-		uint16_t length = 0;
-		memcpy(&length, str.c_str() + pos, 2);
-		pos += 2;
-		payload_length_ = ::ntohl(length);
-	}
-	else if (payload_length_ == 127) {
-		uint64_t length = 0;
-		memcpy(&length, str.c_str() + pos, 8);
-		pos += 4;
-		payload_length_ = ::ntohl(length);
-	}
-
-	std::array<char,4> mask_key;
-	for (int i = 0; i < 4; i++)
-		mask_key[i] = str[pos + i];
-	pos += 4;
-
-	std::array<char,1024> data;
-	if(mask!=1) {
-		std::copy(str.begin() + pos, str.end(), data.begin());
-	}else {
-		for(size_t i=0;i<payload_length_;i++) {
-			int j = i % 4;
-			data[i] = str[pos + i] ^ mask_key[j];
+		uint payload_length_ = str[pos] & 0x7f;
+		pos++;
+		if (payload_length_ == 126) {
+			uint16_t length = 0;
+			memcpy(&length, str.c_str() + pos, 2);
+			pos += 2;
+			payload_length_ = ::ntohl(length);
 		}
+		else if (payload_length_ == 127) {
+			uint64_t length = 0;
+			memcpy(&length, str.c_str() + pos, 8);
+			pos += 4;
+			payload_length_ = ::ntohl(length);
+		}
+
+		std::array<char, 4> mask_key;
+		for (int i = 0; i < 4; i++)
+			mask_key[i] = str[pos + i];
+		pos += 4;
+
+		std::array<char, 1024> data;
+		if (mask != 1) {
+			std::copy(str.begin() + pos, str.end(), data.begin());
+		}
+		else {
+			for (size_t i = 0; i < payload_length_; i++) {
+				int j = i % 4;
+				data[i] = str[pos + i] ^ mask_key[j];
+			}
+		}
+		pos += payload_length_;
+		msg_set.push_back(std::string(data.begin(), data.begin() + payload_length_));
 	}
-	str = std::string(data.begin(), data.begin() + payload_length_);
+	return msg_set;
 }
 
 void User::notice_query(json_message& message) {
@@ -621,7 +641,7 @@ void User::notice_query(json_message& message) {
 	a.PushBack(rapidjson::Value(std::get<3>(res)), msg.getAllocator());
 	a.PushBack(rapidjson::Value(std::get<4>(res)), msg.getAllocator());
 	a.PushBack(rapidjson::Value(std::get<5>(res).c_str(), msg.getAllocator()), msg.getAllocator());
-	msg.add("notice_info",a);
+	msg.add("notice_info", a);
 	do_write(msg.getString());
 }
 
@@ -632,7 +652,7 @@ void User::notice_pull_one(json_message& message)
 	msg.add("type", 11);
 	msg.add("code", 20);
 	rapidjson::Value a(rapidjson::kArrayType);
-	for(auto n:res)
+	for (auto n : res)
 	{
 		a.PushBack(rapidjson::Value(n), msg.getAllocator());
 	}
@@ -647,7 +667,7 @@ void User::notice_pull_application(json_message& message) {
 	msg.add("code", 31);
 	msg.add("notice_id", message.getUInt64("notice_id"));
 	rapidjson::Value a(rapidjson::kArrayType);
-	for(auto n:res) {
+	for (auto n : res) {
 		a.PushBack(rapidjson::Value(n), msg.getAllocator());
 	}
 	msg.add("application_list", a);

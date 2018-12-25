@@ -63,7 +63,7 @@ public:
 
 	void err_exec(int code, const std::string& content);
 	void ws_new(std::string);
-	void ws_read(std::string&);
+	std::vector<std::string> ws_read(std::string&);
 	std::string ws_write(const std::string&);
 private:
 	bool started;
