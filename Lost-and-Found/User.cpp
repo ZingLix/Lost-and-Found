@@ -467,7 +467,7 @@ void User::user_pull(json_message& message) {
 }
 
 void User::user_modify(json_message& message) {
-	userinfo i(message.getUInt64("user_id"), message.getString("username"), message.getString("email"),
+	userinfo i(message.getUInt64("user_id"), "", message.getString("email"),
 		message.getString("phone"), message.getString("description"));
 	server_->db().modifyUser(i);
 	json_message msg;
