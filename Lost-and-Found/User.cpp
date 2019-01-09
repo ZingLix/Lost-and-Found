@@ -15,6 +15,7 @@
 #include <boost/algorithm/string.hpp>
 
 #include  <cstdint> 
+#include <string>
 using namespace boost::asio;
 using namespace boost::beast;
 User::User(socket_ptr&& soc_ptr, Server* s)
@@ -34,7 +35,7 @@ void User::stop() {
 		LOG_INFO << socket()->remote_endpoint().address().to_string() << ":" << socket()->remote_endpoint().port() << " disconnected.";
 		//LOG_INFO << user_id_ << " disconnected.";
 
-		soc_->shutdown(socket_base::shutdown_both);
+		//soc_->shutdown(socket_base::shutdown_both);
 
 
 		if (user_id_ == 0)
@@ -137,7 +138,6 @@ void User::on_write(const boost::system::error_code& err, size_t bytes) {
 	do_read();
 }
 
-
 void User::do_read() {
 	if (started == false) return;
 	using namespace std::placeholders;
@@ -197,7 +197,7 @@ std::string User::ws_write(const std::string& str) {
 
 User::~User() {
 	stop();
-	soc_->close();
+	//soc_->close();
 	LOG_DEBUG << user_id_ << " destroyed";
 }
 
@@ -353,11 +353,15 @@ void User::notice_pull(json_message& message) {
 
 void User::notice_claim(json_message& message) {
 	std::uint64_t app_seq = server_->db().addApplication(user_id_, message.getUInt64("notice_id"));
-	json_message msg;
-	msg.add("type", 11);
-	msg.add("code", 13);
-	msg.add("application_seq", app_seq);
-	do_write(msg.getString());
+	if (app_seq != 0) {
+		json_message msg;
+		msg.add("type", 11);
+		msg.add("code", 13);
+		msg.add("application_seq", app_seq);
+		do_write(msg.getString());
+	}else {
+		err_exec(3, "Have already applied for this item.");
+	}
 }
 
 void User::notice_apply_pull(json_message& message) {

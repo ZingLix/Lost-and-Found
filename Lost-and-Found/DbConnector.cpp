@@ -50,28 +50,16 @@ std::uint64_t DbConnector::checkPassword(std::string username, std::string passw
 
 std::pair<bool,std::string> DbConnector::registerNewUser(std::string username, std::string password) {
 	std::unique_ptr<sql::PreparedStatement> stmt ( con->prepareStatement(
-		"INSERT INTO user(username,password) VALUES (?,?)"));
+		"call registerUser(?,?,@id)"));
 	stmt->setString(1, username);
 	stmt->setString(2, password);
-	try {
-		stmt->executeUpdate();
-	}
-	catch (sql::SQLException& e) {
-		if(e.getErrorCode()==1062) {
-			return std::make_pair(false, "Duplicate username.");
-		}
-		LOG_ERROR << "# ERR: SQLException in " << __FILE__ << "(" << __FUNCTION__ << ") on line "
-			<< __LINE__ << "# ERR: " << e.what() << " (MySQL error code: " << e.getErrorCode()
-			<< ", SQLState: " << e.getSQLState() << " )";
-	}
-	stmt.reset(con->prepareStatement(
-		"SELECT LAST_INSERT_ID() id FROM user"));
+	stmt->execute();
+	stmt.reset(con->prepareStatement("SELECT @id user_id"));
 	std::unique_ptr<sql::ResultSet> res(stmt->executeQuery());
 	res->next();
-	stmt.reset(con->prepareStatement(
-		"INSERT INTO userinfo(user_id) VALUES (?)"));
-	stmt->setUInt64(1, res->getUInt64("id"));
-	stmt->executeUpdate();
+	if(res->getUInt64("user_id")==0) {
+		return std::make_pair(false, "Duplicate username.");
+	}
 	return std::make_pair(true, std::string());
 }
 
@@ -242,6 +230,42 @@ std::tuple<std::uint64_t, std::uint64_t, std::uint16_t, std::uint64_t, std::uint
 	
 }
 
+void DbConnector::initProcedure() const {
+	std::unique_ptr<sql::PreparedStatement> stmt(con->prepareStatement(  
+		"CREATE PROCEDURE registerUser(IN username varchar(64), IN password varchar(64), OUT user_id BIGINT UNSIGNED) \
+		BEGIN\
+			DECLARE EXIT HANDLER FOR 1062 SET user_id = 0;\
+			INSERT INTO user(username, password) VALUES(username, password);\
+			SELECT LAST_INSERT_ID() into user_id;\
+			INSERT INTO userinfo(user_id) VALUES(user_id);\
+		END"));
+	stmt->executeUpdate();
+	stmt.reset(con->prepareStatement(   //update notice status
+		"CREATE TRIGGER trig AFTER UPDATE\
+		ON item_notice FOR EACH ROW\
+		BEGIN\
+		IF NEW.status = 1 THEN\
+			UPDATE application set status = 2 WHERE notice_id = new.notice_id and status = 0;\
+		elseif new.status = 3 THEN\
+			UPDATE application set status = 5 WHERE notice_id = new.notice_id and status = 0;\
+		elseif new.status = 4 THEN\
+			UPDATE application set status = 4 WHERE notice_id = new.notice_id and status = 0;\
+		end if;\
+		END"));
+	stmt->executeUpdate();
+	stmt.reset(con->prepareStatement(   //add application
+		"CREATE PROCEDURE addApplication(IN applicantid BIGINT UNSIGNED, IN noticeid BIGINT UNSIGNED, OUT application_id BIGINT UNSIGNED)\
+		BEGIN\
+		select count(*) from application where applicant_id = applicantid and notice_id = noticeid and status = 0 into application_id;\
+		if application_id = 0 then\
+			INSERT INTO application(applicant_id, notice_id) VALUES(applicantid, noticeid);\
+			SELECT LAST_INSERT_ID() into application_id;\
+		else\
+			set application_id = 0;\
+		end if;\
+		END"));
+	stmt->executeUpdate();
+}
 
 void DbConnector::initDb() {
 	std::string DatabaseName(DbName);
@@ -255,6 +279,7 @@ void DbConnector::initDb() {
 	createTable_item_notice();
 	createTable_application();
 	createTable_notice_info();
+	//initProcedure();
 }
 
 DbConnector::~DbConnector() {
@@ -264,11 +289,11 @@ DbConnector::~DbConnector() {
 
 std::uint64_t DbConnector::addApplication(std::uint64_t applicant_id, std::uint64_t notice_id) {
 	std::unique_ptr<sql::PreparedStatement> stmt(con->prepareStatement(
-		"INSERT INTO application(applicant_id,notice_id) VALUES (?,?)"));
+		"call addApplication(?,?,@app_id)"));
 	stmt->setUInt64(1, applicant_id);
 	stmt->setUInt64(2, notice_id);
-	stmt->executeUpdate();
-	stmt.reset(con->prepareStatement("SELECT LAST_INSERT_ID() id FROM application"));
+	stmt->execute();
+	stmt.reset(con->prepareStatement("SELECT @app_id id"));
 	std::shared_ptr<sql::ResultSet> result(stmt->executeQuery());
 	result->next();
 	return result->getUInt64("id");
@@ -307,12 +332,14 @@ void DbConnector::execApplication(std::uint64_t application_id, int status) {
 	stmt->setUInt64(2, application_id);
 	stmt->executeUpdate();
 	if(status==1) {
-		stmt.reset(con->prepareStatement("select notice_id from application where application_seq = ?"));
+		stmt.reset(con->prepareStatement(
+			"select notice_id from application where application_seq = ?"));
 		stmt->setUInt64(1, application_id);
-		std::unique_ptr<sql::ResultSet> res(stmt->executeQuery());
-		res->next();
-		auto notice_id = res->getUInt64("notice_id");
-		stmt.reset(con->prepareStatement("update item_notice set status = 1 where notice_id = ?"));
+		std::unique_ptr<sql::ResultSet> result(stmt->executeQuery());
+		result->next();
+		auto notice_id = result->getUInt64("notice_id");
+		stmt.reset(con->prepareStatement(
+			"update item_notice set status = 1 where notice_id = ?"));
 		stmt->setUInt64(1, notice_id);
 		stmt->executeUpdate();
 	}
@@ -321,10 +348,6 @@ void DbConnector::execApplication(std::uint64_t application_id, int status) {
 void DbConnector::withdrawNotice(std::uint64_t notice_id) {
 	std::unique_ptr<sql::PreparedStatement> stmt(con->prepareStatement(
 		"update item_notice set status = 3 where notice_id = ?"));
-	stmt->setUInt64(1, notice_id);
-	stmt->executeUpdate();
-	stmt.reset(con->prepareStatement(
-		"update application set status = 5 where notice_id = ? and status =0"));
 	stmt->setUInt64(1, notice_id);
 	stmt->executeUpdate();
 }

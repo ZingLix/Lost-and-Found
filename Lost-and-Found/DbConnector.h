@@ -60,6 +60,8 @@ public:
 	void createTable_application() const;
 	void createTable_notice_info() const;
 
+	void initProcedure() const;
+
 	void initDb();
 
 	~DbConnector();
